@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PAMPER – My Profile</title>
+<link rel="stylesheet" href="/css/app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+.profile-grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;}
+.profile-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden;animation:fadeUp .35s ease both;}
+.profile-header{background:linear-gradient(135deg,var(--teal-deeper),var(--teal));padding:32px 28px;text-align:center;position:relative;overflow:hidden;}
+.profile-header::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;border-radius:50%;border:1.5px solid rgba(255,255,255,.1);}
+.profile-av{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;margin:0 auto 14px;position:relative;z-index:1;}
+.profile-name{font-size:19px;font-weight:800;color:#fff;margin-bottom:4px;position:relative;z-index:1;}
+.profile-role{font-size:12.5px;color:rgba(255,255,255,.65);font-family:var(--mono);letter-spacing:1px;position:relative;z-index:1;}
+.profile-body{padding:22px;}
+.info-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border-2);}
+.info-row:last-child{border-bottom:none;}
+.info-label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+.info-val{font-size:13.5px;color:var(--text);font-weight:500;text-align:right;}
+.info-val.mono{font-family:var(--mono);font-size:12px;}
+
+/* QR card for students */
+.qr-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-top:18px;animation:fadeUp .4s ease both;}
+.qr-header{background:linear-gradient(135deg,var(--teal-deeper),var(--teal-dark));padding:16px 22px;}
+.qr-header h3{font-size:14px;font-weight:700;color:#fff;}
+.qr-header p{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px;}
+.qr-body{padding:24px;text-align:center;}
+.qr-body canvas,#qr-img img{margin:0 auto;display:block;border-radius:8px;}
+.qr-val{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:10px;word-break:break-all;padding:0 12px;}
+.qr-hint{font-size:12px;color:var(--muted);margin-top:8px;}
+
+/* Right column panels */
+.right-col{display:flex;flex-direction:column;gap:18px;}
+.panel-body{padding:22px;}
+
+/* Attendance history mini table */
+.att-mini{max-height:280px;overflow-y:auto;}
+.att-mini table{width:100%;border-collapse:collapse;}
+.att-mini th{padding:9px 14px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border);text-align:left;}
+.att-mini td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border-2);}
+.att-mini tr:last-child td{border-bottom:none;}
+.att-mini tr:hover td{background:var(--teal-pale);}
+</style>
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>My Profile</h2>
+    <div class="topbar-r"><span class="chip chip-teal chip-mono">BETA</span></div>
+  </div>
+
+  <div class="page">
+    <div class="profile-grid">
+
+      <!-- Left: profile card + QR (students) -->
+      <div>
+        <div class="profile-card">
+          <div class="profile-header">
+            <div class="profile-av" id="pf-av">?</div>
+            <div class="profile-name" id="pf-name">Loading…</div>
+            <div class="profile-role" id="pf-role"></div>
+          </div>
+          <div class="profile-body">
+            <div class="info-row"><span class="info-label">Email</span><span class="info-val" id="pf-email">—</span></div>
+            <div class="info-row"><span class="info-label">Role</span><span class="info-val" id="pf-role2">—</span></div>
+            <div class="info-row" id="pf-sid-row" style="display:none;"><span class="info-label">Student ID</span><span class="info-val mono" id="pf-sid">—</span></div>
+            <div class="info-row" id="pf-grade-row" style="display:none;"><span class="info-label">Grade</span><span class="info-val" id="pf-grade">—</span></div>
+          </div>
+        </div>
+
+        <!-- QR card (students only) -->
+        <div class="qr-card" id="qr-section" style="display:none;">
+          <div class="qr-header"><h3>Your QR Code</h3><p>Present this at the campus gate to mark attendance</p></div>
+          <div class="qr-body">
+            <div id="qr-canvas"></div>
+            <div class="qr-val" id="qr-val">—</div>
+            <p class="qr-hint">Do not share your QR code with others</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div class="right-col">
+
+        <!-- Attendance summary (students) -->
+        <div class="panel" id="att-section" style="display:none;">
+          <div class="ph">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>My Attendance</h3>
+            <span id="att-rate" style="font-family:var(--mono);font-size:13px;color:var(--teal);font-weight:700;"></span>
+          </div>
+          <div class="panel-body" style="padding-bottom:0;">
+            <div style="display:flex;gap:16px;margin-bottom:16px;">
+              <div style="flex:1;background:var(--teal-glow);border-radius:var(--r);padding:14px;text-align:center;">
+                <div style="font-size:24px;font-weight:800;font-family:var(--mono);color:var(--teal);" id="att-present-days">—</div>
+                <div style="font-size:11.5px;color:var(--muted);">Days Present</div>
+              </div>
+              <div style="flex:1;background:var(--red-p);border-radius:var(--r);padding:14px;text-align:center;">
+                <div style="font-size:24px;font-weight:800;font-family:var(--mono);color:var(--red);" id="att-total-days">—</div>
+                <div style="font-size:11.5px;color:var(--muted);">Total Days</div>
+              </div>
+            </div>
+          </div>
+          <div class="att-mini">
+            <table>
+              <thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Status</th></tr></thead>
+              <tbody id="att-mini-body"><tr><td colspan="4" style="text-align:center;padding:18px;color:var(--muted);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Change password -->
+        <div class="panel">
+          <div class="ph">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Change Password</h3>
+          </div>
+          <div class="panel-body">
+            <div class="field"><label>Current Password</label><input type="password" id="cur-pass" placeholder="••••••••"></div>
+            <div class="field"><label>New Password</label><input type="password" id="new-pass" placeholder="Minimum 8 characters"></div>
+            <div class="field"><label>Confirm New Password</label><input type="password" id="conf-pass" placeholder="Repeat new password"></div>
+            <button class="btn btn-primary" id="pass-btn" onclick="changePassword()">Update Password</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+injectSidebar('profile');
+
+async function loadProfile() {
+  const { user } = await initAuth();
+
+  document.getElementById('pf-av').textContent     = initials(user.name);
+  document.getElementById('pf-name').textContent   = user.name;
+  document.getElementById('pf-role').textContent   = user.role.toUpperCase();
+  document.getElementById('pf-email').textContent  = user.email;
+  document.getElementById('pf-role2').textContent  = capitalise(user.role);
+
+  if (user.role === 'student') {
+    document.getElementById('pf-sid-row').style.display   = '';
+    document.getElementById('pf-grade-row').style.display = '';
+    document.getElementById('pf-sid').textContent         = user.studentId || '—';
+    document.getElementById('pf-grade').textContent       = user.grade || '—';
+
+    // Show QR code
+    document.getElementById('qr-section').style.display = '';
+    document.getElementById('qr-val').textContent = user.qrCode || '—';
+    if (user.qrCode) {
+      const c = document.getElementById('qr-canvas');
+      c.innerHTML = '';
+      new QRCode(c, { text: user.qrCode, width:180, height:180, correctLevel: QRCode.CorrectLevel.M });
+    }
+
+    // Show attendance
+    document.getElementById('att-section').style.display = '';
+    loadAttendance();
+  }
+}
+
+async function loadAttendance() {
+  try {
+    const res = await api.get('/api/attendance/me');
+    document.getElementById('att-present-days').textContent = res.summary.present_days;
+    document.getElementById('att-total-days').textContent   = res.summary.total_days;
+    document.getElementById('att-rate').textContent         = `${res.summary.attendance_rate}% rate`;
+
+    const body = document.getElementById('att-mini-body');
+    if (!res.records.length) {
+      body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--muted);">No attendance records yet</td></tr>';
+      return;
+    }
+    body.innerHTML = res.records.slice(0,20).map(r => `
+      <tr>
+        <td class="mono">${r.date}</td>
+        <td class="mono">${r.time_in||'—'}</td>
+        <td class="mono">${r.time_out||'—'}</td>
+        <td><span class="pill ${r.time_in?'pill-g':'pill-r'}">${r.time_in?'Present':'Absent'}</span></td>
+      </tr>`).join('');
+  } catch(e) {
+    console.error('Attendance load error:', e);
+  }
+}
+
+async function changePassword() {
+  const cur  = document.getElementById('cur-pass').value;
+  const nw   = document.getElementById('new-pass').value;
+  const conf = document.getElementById('conf-pass').value;
+  const btn  = document.getElementById('pass-btn');
+
+  if (!cur || !nw || !conf)      { toast('Fill all fields','','err'); return; }
+  if (nw !== conf)               { toast('Passwords do not match','','err'); return; }
+  if (nw.length < 8)             { toast('Password too short','Minimum 8 characters','err'); return; }
+
+  setLoading(btn, true);
+  try {
+    await api.post('/api/auth/change-password', { currentPassword: cur, newPassword: nw });
+    toast('Password updated!','Sign in with your new password next time','ok');
+    ['cur-pass','new-pass','conf-pass'].forEach(id => document.getElementById(id).value = '');
+  } catch(e) { toast('Failed', e.message, 'err'); }
+  finally { setLoading(btn, false); }
+}
+
+loadProfile();
+</script>
+</body>
+</html>

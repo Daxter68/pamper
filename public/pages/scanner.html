@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PAMPER – Scan Attendance</title>
+<link rel="stylesheet" href="/css/app.css">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+.scan-layout{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start;}
+.scan-card{background:var(--navy);border-radius:16px;border:1px solid rgba(14,138,124,.2);overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.22);}
+.sc-head{padding:18px 22px;border-bottom:1px solid rgba(14,138,124,.15);display:flex;align-items:center;justify-content:space-between;}
+.sc-head h3{font-size:15px;font-weight:700;color:#fff;}
+.sc-head p{font-size:12px;color:rgba(26,181,164,.6);margin-top:2px;}
+.sc-body{padding:22px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.cam-frame{position:relative;width:100%;max-width:420px;border-radius:12px;overflow:hidden;background:#000;}
+.scan-overlay{position:absolute;inset:0;pointer-events:none;z-index:10;}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--teal-light) 30%,var(--teal) 50%,var(--teal-light) 70%,transparent);box-shadow:0 0 10px var(--teal);animation:scanline 2.4s ease-in-out infinite;top:15%;}
+@keyframes scanline{0%{top:10%;opacity:1}50%{top:88%;opacity:1}100%{top:10%;opacity:1}}
+.corner{position:absolute;width:24px;height:24px;border-color:var(--teal-light);border-style:solid;}
+.c-tl{top:10px;left:10px;border-width:2px 0 0 2px;}
+.c-tr{top:10px;right:10px;border-width:2px 2px 0 0;}
+.c-bl{bottom:10px;left:10px;border-width:0 0 2px 2px;}
+.c-br{bottom:10px;right:10px;border-width:0 2px 2px 0;}
+#reader{width:100%;}
+#reader__dashboard_section_csr button{margin-top:0!important;padding:10px 22px!important;background:var(--teal)!important;color:#fff!important;border:none!important;border-radius:8px!important;font-family:var(--font)!important;font-size:13px!important;font-weight:600!important;cursor:pointer!important;}
+.hint-txt{font-family:var(--mono);font-size:11.5px;color:rgba(26,181,164,.5);text-align:center;}
+/* Manual input */
+.manual-form{background:var(--navy-mid,#0f2830);border-top:1px solid rgba(14,138,124,.15);padding:18px 22px;display:flex;gap:10px;}
+.manual-form input{flex:1;padding:10px 14px;background:rgba(255,255,255,.07);border:1.5px solid rgba(14,138,124,.2);border-radius:8px;color:#fff;font-family:var(--mono);font-size:13px;outline:none;}
+.manual-form input:focus{border-color:var(--teal);}
+.manual-form input::placeholder{color:rgba(255,255,255,.25);}
+.scan-type-toggle{display:flex;gap:6px;margin-bottom:8px;}
+.stt-btn{flex:1;padding:8px;border-radius:8px;border:1.5px solid rgba(14,138,124,.25);background:transparent;color:rgba(255,255,255,.45);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;}
+.stt-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+
+/* Result cards */
+.ls-card{padding:18px;text-align:center;}
+.ls-av{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dark));margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;}
+.ls-name{font-size:15px;font-weight:700;color:var(--text);}
+.ls-id{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:2px;}
+.ls-time{font-size:12px;color:var(--muted);margin-top:6px;}
+.log-item{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border-2);}
+.log-item:last-child{border-bottom:none;}
+.log-name{font-size:13px;font-weight:600;color:var(--text);}
+.log-sid{font-family:var(--mono);font-size:11px;color:var(--muted);}
+.log-time{font-family:var(--mono);font-size:11.5px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>Scan Attendance</h2>
+    <div class="topbar-r">
+      <span class="chip chip-teal chip-mono">BETA</span>
+      <span class="live-pill"><span class="live-dot"></span>LIVE</span>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="scan-layout">
+      <!-- Scanner -->
+      <div class="scan-card">
+        <div class="sc-head">
+          <div><h3>QR Code Scanner</h3><p>Point camera at student ID card</p></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="scan-type-toggle" style="margin:0;">
+              <button class="stt-btn active" data-type="in"  onclick="setScanType(this)">Check IN</button>
+              <button class="stt-btn"        data-type="out" onclick="setScanType(this)">Check OUT</button>
+            </div>
+          </div>
+        </div>
+        <div class="sc-body">
+          <div class="cam-frame">
+            <div class="scan-overlay">
+              <div class="scan-line"></div>
+              <div class="corner c-tl"></div><div class="corner c-tr"></div>
+              <div class="corner c-bl"></div><div class="corner c-br"></div>
+            </div>
+            <div id="reader"></div>
+          </div>
+          <p class="hint-txt">// align QR within frame — camera permission required</p>
+        </div>
+        <div class="manual-form">
+          <input type="text" id="manual-qr" placeholder="or type QR code / student ID manually…" onkeydown="if(event.key==='Enter')manualScan()">
+          <button class="btn btn-primary btn-sm" onclick="manualScan()">Scan</button>
+        </div>
+      </div>
+
+      <!-- Right panels -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="panel">
+          <div class="ph"><h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Last Scanned</h3></div>
+          <div class="ls-card" id="lastScan">
+            <div class="ls-av">—</div>
+            <div class="ls-name">Awaiting scan…</div>
+            <div class="ls-id"></div>
+            <div class="ls-time">No scan yet</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="ph"><h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Today's Log</h3></div>
+          <div id="scan-log" style="max-height:240px;overflow-y:auto;">
+            <div style="text-align:center;padding:18px;color:var(--muted);font-size:13px;">No scans yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+injectSidebar('scanner');
+initAuth(['admin','security']);
+
+let scanType = 'in';
+let scanning = false;
+
+function setScanType(btn) {
+  document.querySelectorAll('.stt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  scanType = btn.dataset.type;
+}
+
+function updateLastScan(student, time, type) {
+  const ini = initials(student.name || student.full_name || '?');
+  document.getElementById('lastScan').innerHTML = `
+    <div class="ls-av">${ini}</div>
+    <div class="ls-name">${student.name || student.full_name}</div>
+    <div class="ls-id mono">${student.studentId || student.student_id || ''}</div>
+    <div class="ls-time">${type === 'in' ? 'Checked In' : 'Checked Out'} at ${time}</div>
+    <div class="pill pill-g" style="display:inline-flex;margin-top:8px;">${type === 'in' ? 'Present' : 'Out'}</div>`;
+}
+
+function prependLog(student, time, type) {
+  const log = document.getElementById('scan-log');
+  if (log.querySelector('[style*="padding:18px"]')) log.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'log-item';
+  row.innerHTML = `
+    <div>
+      <div class="log-name">${student.name || student.full_name}</div>
+      <div class="log-sid">${student.studentId || student.student_id || ''} · ${type === 'in' ? 'IN' : 'OUT'}</div>
+    </div>
+    <div class="log-time">${time}</div>`;
+  log.insertBefore(row, log.firstChild);
+}
+
+async function processScan(qrCode) {
+  if (scanning) return;
+  scanning = true;
+  try {
+    const res = await api.post('/api/attendance/scan', { qr_code: qrCode, scan_type: scanType });
+    const time = formatTime(res.scan_time);
+    updateLastScan(res.student, time, scanType);
+    prependLog(res.student, time, scanType);
+    toast(
+      scanType === 'in' ? `Welcome, ${res.student.name.split(' ')[0]}!` : `Goodbye, ${res.student.name.split(' ')[0]}!`,
+      `${scanType === 'in' ? 'Checked in' : 'Checked out'} at ${time}`,
+      'ok'
+    );
+  } catch(e) {
+    const msg = e.message;
+    if (msg.includes('BLACKLISTED')) {
+      toast('⚠ Blacklisted Student!', 'Security alert logged — contact admin', 'err');
+    } else if (msg.includes('DUPLICATE')) {
+      toast('Already recorded', msg, 'warn');
+    } else {
+      toast('Scan failed', msg, 'err');
+    }
+  } finally {
+    setTimeout(() => { scanning = false; }, 2000);
+  }
+}
+
+function manualScan() {
+  const val = document.getElementById('manual-qr').value.trim();
+  if (!val) return;
+  processScan(val);
+  document.getElementById('manual-qr').value = '';
+}
+
+// Init QR scanner
+let scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 240, rememberLastUsedCamera: true });
+scanner.render(code => processScan(code));
+</script>
+</body>
+</html>

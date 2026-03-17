@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PAMPER – Dashboard</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+
+<div id="sidebar-root"></div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>Admin Dashboard</h2>
+    <div class="topbar-r">
+      <span class="chip chip-teal chip-mono">BETA v0.4</span>
+      <span style="font-size:12.5px;color:var(--muted);" id="date-display"></span>
+    </div>
+  </div>
+
+  <div class="page">
+    <!-- Stats -->
+    <div class="stat-grid" id="stats-grid">
+      <div class="stat-card sc-t"><div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div><div class="sl">Total Students</div><div class="sv" id="s-total">—</div><div class="ss">Enrolled</div></div>
+      <div class="stat-card sc-g"><div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="sl">Present Today</div><div class="sv" id="s-present">—</div><div class="ss" id="s-rate">—</div></div>
+      <div class="stat-card sc-r"><div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="sl">Absent Today</div><div class="sv" id="s-absent">—</div><div class="ss">Not scanned in</div></div>
+      <div class="stat-card sc-b"><div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg></div><div class="sl">QR Scans Today</div><div class="sv" id="s-scans">—</div><div class="ss">Total scan events</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 310px;gap:18px;">
+      <!-- Attendance table -->
+      <div class="panel">
+        <div class="ph">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Today's Attendance</h3>
+          <a href="/attendance">View all →</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Name</th><th>Time In</th><th>Time Out</th><th>Status</th></tr></thead>
+            <tbody id="att-body"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted);">Loading records…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="rate-wrap" style="padding:16px 18px;border-top:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:12.5px;color:var(--muted);font-weight:500;">Attendance Rate</span>
+            <strong style="font-size:15px;color:var(--teal);font-family:var(--mono);" id="rate-pct">—</strong>
+          </div>
+          <div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;">
+            <div id="rate-bar" style="height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-light));border-radius:4px;width:0%;transition:width 1s ease;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity feed -->
+      <div class="panel">
+        <div class="ph">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Live Activity</h3>
+          <span class="live-pill"><span class="live-dot"></span>Live</span>
+        </div>
+        <div id="feed" style="padding:4px 0;max-height:400px;overflow-y:auto;">
+          <div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+injectSidebar('dashboard');
+initAuth(['admin','security']);
+
+document.getElementById('date-display').textContent =
+  new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+
+async function loadStats() {
+  const s = await api.get('/api/attendance/today-stats');
+  document.getElementById('s-total').textContent   = s.total_students;
+  document.getElementById('s-present').textContent = s.present;
+  document.getElementById('s-absent').textContent  = s.absent;
+  document.getElementById('s-scans').textContent   = s.total_scans;
+  document.getElementById('s-rate').textContent    = `${s.attendance_rate}% attendance rate`;
+  document.getElementById('rate-pct').textContent  = `${s.attendance_rate}%`;
+  document.getElementById('rate-bar').style.width  = `${s.attendance_rate}%`;
+}
+
+async function loadAttendance() {
+  const res = await api.get('/api/attendance');
+  const tbody = document.getElementById('att-body');
+  const rows = res.data.slice(0,8).map(r => `
+    <tr>
+      <td class="mono">${r.student_id || '—'}</td>
+      <td>${r.full_name}</td>
+      <td class="mono">${r.time_in || '—'}</td>
+      <td class="mono">${r.time_out || '—'}</td>
+      <td><span class="pill ${r.status==='present'?'pill-g':'pill-r'}">${r.status==='present'?'Present':'Absent'}</span></td>
+    </tr>`).join('');
+  tbody.innerHTML = rows || '<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--muted);">No records yet today</td></tr>';
+}
+
+async function loadFeed() {
+  const feed = await api.get('/api/attendance/live-feed');
+  const el = document.getElementById('feed');
+  if (!feed.length) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No recent activity</div>'; return; }
+  el.innerHTML = feed.map(f => `
+    <div style="display:flex;align-items:center;gap:11px;padding:11px 18px;border-bottom:1px solid var(--border-2);">
+      <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dark));display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#fff;flex-shrink:0;">${f.initials}</div>
+      <div style="flex:1;min-width:0;">
+        <p style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name} <span style="font-size:11px;color:${f.scan_type==='in'?'var(--green)':'var(--muted)'};">${f.scan_type==='in'?'checked in':'checked out'}</span></p>
+        <time style="font-size:11px;color:var(--muted);">${formatTime(f.scan_time)}</time>
+      </div>
+    </div>`).join('');
+}
+
+async function loadAll() {
+  try { await Promise.all([loadStats(), loadAttendance(), loadFeed()]); }
+  catch(e) { console.error(e); }
+}
+
+loadAll();
+setInterval(loadAll, 30000); // auto-refresh every 30s
+</script>
+</body>
+</html>

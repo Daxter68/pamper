@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAMPER – Student Portal</title>
+<link rel="stylesheet" href="/css/app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* ── Student-specific layout ── */
+.student-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Profile + QR card ── */
+.id-card {
+  background: var(--navy);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(14,138,124,.25);
+  box-shadow: 0 16px 48px rgba(0,0,0,.22);
+  animation: fadeUp .4s ease both;
+}
+.id-card-header {
+  background: linear-gradient(135deg, var(--teal-deeper, #085047) 0%, var(--teal-dark) 50%, var(--teal) 100%);
+  padding: 28px 24px 20px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.id-card-header::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 130px; height: 130px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.1);
+}
+.id-card-header::after {
+  content: ''; position: absolute; bottom: -30px; left: -30px;
+  width: 100px; height: 100px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.08);
+}
+.student-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  border: 2.5px solid rgba(255,255,255,.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 800; color: #fff;
+  margin: 0 auto 12px; position: relative; z-index: 1;
+}
+.student-name { font-size: 18px; font-weight: 800; color: #fff; position: relative; z-index: 1; }
+.student-id   { font-family: var(--mono); font-size: 12px; color: rgba(255,255,255,.6); margin-top: 4px; position: relative; z-index: 1; }
+.student-grade {
+  display: inline-block; margin-top: 10px; padding: 4px 14px;
+  border-radius: 20px; background: rgba(255,255,255,.15);
+  font-size: 12px; font-weight: 600; color: rgba(255,255,255,.85);
+  position: relative; z-index: 1;
+}
+
+/* QR section */
+.qr-section {
+  padding: 22px;
+  text-align: center;
+  border-bottom: 1px solid rgba(14,138,124,.12);
+}
+.qr-section h3 {
+  font-size: 13px; font-weight: 700; color: rgba(255,255,255,.7);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
+}
+#qr-canvas { margin: 0 auto; display: block; }
+#qr-canvas canvas, #qr-canvas img { border-radius: 10px; }
+.qr-code-text {
+  font-family: var(--mono); font-size: 10px;
+  color: rgba(255,255,255,.3); margin-top: 10px;
+  word-break: break-all; padding: 0 8px;
+}
+.qr-instructions {
+  font-size: 12px; color: rgba(255,255,255,.45);
+  margin-top: 10px; line-height: 1.6;
+}
+
+/* Self check-in buttons */
+.checkin-section {
+  padding: 18px 22px;
+}
+.checkin-section h3 {
+  font-size: 12px; font-weight: 700; color: rgba(255,255,255,.5);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;
+}
+.checkin-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-checkin {
+  padding: 13px 10px; border-radius: 10px; border: none;
+  font-family: var(--font); font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all .18s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-checkin svg { width: 17px; height: 17px; stroke: currentColor; flex-shrink: 0; }
+.btn-in {
+  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+  color: #fff; box-shadow: 0 4px 16px rgba(14,138,124,.4);
+}
+.btn-in:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(14,138,124,.5); }
+.btn-out {
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.7);
+  border: 1.5px solid rgba(255,255,255,.12);
+}
+.btn-out:hover { background: rgba(255,255,255,.12); color: #fff; }
+.btn-checkin:disabled { opacity: .5; transform: none !important; cursor: not-allowed; }
+
+/* ── Right column ── */
+.right-col { display: flex; flex-direction: column; gap: 18px; }
+
+/* Stats row */
+.stats-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+}
+.stat-card { animation-delay: .05s; }
+.stat-card:nth-child(2) { animation-delay: .1s; }
+.stat-card:nth-child(3) { animation-delay: .15s; }
+
+/* Rate bar */
+.rate-bar-wrap { padding: 0 20px 18px; }
+.rate-label-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px;
+}
+.rate-label-row span { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.rate-label-row strong { font-size: 16px; color: var(--teal); font-family: var(--mono); }
+.rate-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.rate-fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--teal), var(--teal-light));
+  width: 0%; transition: width 1.2s cubic-bezier(.34,1.2,.64,1);
+}
+
+/* Attendance history table */
+.att-table-wrap { max-height: 380px; overflow-y: auto; }
+
+/* Last scan status banner */
+.scan-result {
+  padding: 14px 20px; border-radius: 10px; margin-bottom: 14px;
+  display: none; align-items: center; gap: 12px;
+  animation: fadeUp .25s ease;
+}
+.scan-result.show { display: flex; }
+.scan-result.ok  { background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.3); color: #6ee7b7; }
+.scan-result.err { background: rgba(239,68,68,.12);  border: 1px solid rgba(239,68,68,.3);  color: #fca5a5; }
+.scan-result svg { width: 20px; height: 20px; flex-shrink: 0; }
+.scan-result-text strong { display: block; font-size: 14px; font-weight: 700; }
+.scan-result-text span   { font-size: 12px; opacity: .8; }
+
+/* Upcoming / no data state */
+.empty-state {
+  text-align: center; padding: 36px 20px;
+  color: var(--muted); font-size: 13.5px;
+}
+.empty-state svg { width: 40px; height: 40px; stroke: var(--border); margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<!-- Student sidebar (injected by JS with student nav) -->
+<div id="sidebar-root"></div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>Student Portal</h2>
+    <div class="topbar-r">
+      <span class="chip chip-teal chip-mono">BETA</span>
+      <span style="font-size:12.5px;color:var(--muted);" id="date-display"></span>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="student-layout">
+
+      <!-- ── Left: ID card + QR + check-in ── -->
+      <div>
+        <div class="id-card">
+          <!-- Header -->
+          <div class="id-card-header">
+            <div class="student-avatar" id="stu-av">?</div>
+            <div class="student-name"  id="stu-name">Loading…</div>
+            <div class="student-id"   id="stu-id"></div>
+            <div class="student-grade" id="stu-grade"></div>
+          </div>
+
+          <!-- QR Code -->
+          <div class="qr-section">
+            <h3>Your QR Card</h3>
+            <div id="qr-canvas"></div>
+            <div class="qr-code-text" id="qr-text"></div>
+            <p class="qr-instructions">Present this QR code at the campus gate.<br>Do not share it with anyone.</p>
+          </div>
+
+          <!-- Self check-in (optional — if campus allows self-scan) -->
+          <div class="checkin-section">
+            <h3>Manual Check-in</h3>
+            <div id="scan-result" class="scan-result">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="scan-ico"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <div class="scan-result-text">
+                <strong id="scan-result-title"></strong>
+                <span   id="scan-result-sub"></span>
+              </div>
+            </div>
+            <div class="checkin-btns">
+              <button class="btn-checkin btn-in" id="btn-in" onclick="doScan('in')">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                Check In
+              </button>
+              <button class="btn-checkin btn-out" id="btn-out" onclick="doScan('out')">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Check Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Right: stats + attendance history ── -->
+      <div class="right-col">
+
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-card sc-t">
+            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="sl">Days Present</div>
+            <div class="sv" id="stat-present">—</div>
+            <div class="ss">This period</div>
+          </div>
+          <div class="stat-card sc-r">
+            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            <div class="sl">Days Absent</div>
+            <div class="sv" id="stat-absent">—</div>
+            <div class="ss">This period</div>
+          </div>
+          <div class="stat-card sc-g">
+            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <div class="sl">Attendance Rate</div>
+            <div class="sv" id="stat-rate">—</div>
+            <div class="ss" id="stat-rate-label">Overall</div>
+          </div>
+        </div>
+
+        <!-- Attendance rate progress bar -->
+        <div class="panel" style="padding-bottom:4px;">
+          <div class="ph">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Attendance Rate</h3>
+            <span id="rate-chip" class="chip chip-teal" style="font-family:var(--mono);font-size:11px;">—</span>
+          </div>
+          <div class="rate-bar-wrap">
+            <div class="rate-label-row">
+              <span id="rate-desc">Present days out of total school days</span>
+              <strong id="rate-pct">—</strong>
+            </div>
+            <div class="rate-bg"><div class="rate-fill" id="rate-fill"></div></div>
+          </div>
+        </div>
+
+        <!-- Attendance history -->
+        <div class="panel">
+          <div class="ph">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Attendance History</h3>
+            <span style="font-size:12px;color:var(--muted);">Last 30 records</span>
+          </div>
+          <div class="att-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Day</th>
+                  <th>Time In</th>
+                  <th>Time Out</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="att-body">
+                <tr><td colspan="5" class="empty-state" style="padding:28px;text-align:center;color:var(--muted);">Loading attendance…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script src="/js/api.js"></script>
+<script>
+// ── Student sidebar (different from admin sidebar) ─────────────
+function injectStudentSidebar(user) {
+  const el = document.getElementById('sidebar-root');
+  el.innerHTML = `
+    <aside class="sidebar">
+      <div class="sb-beta">PAMPER · BETA v0.4</div>
+      <div class="sb-brand">
+        <div class="sb-mark"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div><div class="sb-name">PAMPER</div><div class="sb-ver">Student Portal</div></div>
+      </div>
+      <nav class="sb-nav">
+        <div class="sb-label">My Portal</div>
+        <a class="nav-a on" href="/student-home">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Home
+        </a>
+        <a class="nav-a" href="/profile">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          My Profile
+        </a>
+        <div class="sb-label">Attendance</div>
+        <a class="nav-a" href="#att-section" onclick="document.getElementById('att-body').scrollIntoView({behavior:'smooth'});return false;">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+          My Records
+        </a>
+        <div class="sb-label">Account</div>
+        <a class="nav-a" href="#" onclick="logout();return false;">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </a>
+      </nav>
+      <div class="sb-user">
+        <div class="user-chip">
+          <div class="u-av">${initials(user.name)}</div>
+          <div>
+            <div class="u-name">${user.name}</div>
+            <div class="u-role">Student</div>
+          </div>
+        </div>
+      </div>
+    </aside>`;
+}
+
+// ── Init ────────────────────────────────────────────────────────
+let currentUser = null;
+
+async function init() {
+  // Auth guard — students only
+  currentUser = await initAuth(['student']);
+  if (!currentUser) return;
+
+  // Inject student sidebar
+  injectStudentSidebar(currentUser);
+
+  // Set date
+  document.getElementById('date-display').textContent =
+    new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+
+  // Fill profile card
+  document.getElementById('stu-av').textContent    = initials(currentUser.name);
+  document.getElementById('stu-name').textContent  = currentUser.name;
+  document.getElementById('stu-id').textContent    = currentUser.studentId ? `ID: ${currentUser.studentId}` : '';
+  document.getElementById('stu-grade').textContent = currentUser.grade || '';
+
+  // Render QR code
+  if (currentUser.qrCode) {
+    document.getElementById('qr-text').textContent = currentUser.qrCode;
+    new QRCode(document.getElementById('qr-canvas'), {
+      text:         currentUser.qrCode,
+      width:        180,
+      height:       180,
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } else {
+    document.getElementById('qr-canvas').innerHTML =
+      '<div style="width:180px;height:180px;border:2px dashed rgba(14,138,124,.3);border-radius:10px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:13px;margin:0 auto;">No QR assigned</div>';
+  }
+
+  // Load attendance data
+  loadAttendance();
+}
+
+// ── Load attendance history ─────────────────────────────────────
+async function loadAttendance() {
+  try {
+    const res = await api.get('/api/attendance/me');
+    const { summary, records } = res;
+
+    // Stats
+    document.getElementById('stat-present').textContent = summary.present_days;
+    document.getElementById('stat-absent').textContent  = summary.total_days - summary.present_days;
+    document.getElementById('stat-rate').textContent    = summary.attendance_rate + '%';
+
+    // Rate bar
+    const rate = summary.attendance_rate;
+    document.getElementById('rate-pct').textContent = rate + '%';
+    document.getElementById('rate-desc').textContent =
+      `${summary.present_days} present out of ${summary.total_days} school days`;
+    document.getElementById('rate-chip').textContent = rate + '%';
+
+    // Colour the rate chip
+    const chip = document.getElementById('rate-chip');
+    if      (rate >= 80) { chip.style.background='rgba(16,185,129,.12)'; chip.style.color='var(--green)'; chip.style.borderColor='rgba(16,185,129,.3)'; }
+    else if (rate >= 60) { chip.style.background='rgba(245,158,11,.12)'; chip.style.color='var(--amber)'; chip.style.borderColor='rgba(245,158,11,.3)'; }
+    else                 { chip.style.background='rgba(239,68,68,.12)';  chip.style.color='var(--red)';   chip.style.borderColor='rgba(239,68,68,.3)'; }
+
+    // Animate rate bar after short delay
+    setTimeout(() => {
+      document.getElementById('rate-fill').style.width = rate + '%';
+      // Colour bar based on rate
+      const fill = document.getElementById('rate-fill');
+      if      (rate >= 80) fill.style.background = 'linear-gradient(90deg,#10b981,#34d399)';
+      else if (rate >= 60) fill.style.background = 'linear-gradient(90deg,#f59e0b,#fbbf24)';
+      else                 fill.style.background = 'linear-gradient(90deg,#ef4444,#f87171)';
+    }, 300);
+
+    // Table
+    renderAttendanceTable(records);
+
+  } catch(e) {
+    console.error('Failed to load attendance:', e);
+    document.getElementById('att-body').innerHTML =
+      `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted);">Could not load attendance records.</td></tr>`;
+  }
+}
+
+function renderAttendanceTable(records) {
+  const body = document.getElementById('att-body');
+
+  if (!records || records.length === 0) {
+    body.innerHTML = `
+      <tr><td colspan="5" style="padding:0;">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          No attendance records yet.<br>Check in at the campus gate to get started.
+        </div>
+      </td></tr>`;
+    return;
+  }
+
+  body.innerHTML = records.slice(0, 30).map(r => {
+    const dateObj  = new Date(r.date + 'T12:00:00');
+    const dayName  = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+    const dateStr  = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const isPresent = !!r.time_in;
+
+    return `
+      <tr>
+        <td class="mono">${dateStr}</td>
+        <td style="color:var(--muted);font-size:12.5px;">${dayName}</td>
+        <td class="mono">${r.time_in  || '—'}</td>
+        <td class="mono">${r.time_out || '—'}</td>
+        <td><span class="pill ${isPresent ? 'pill-g' : 'pill-r'}">${isPresent ? 'Present' : 'Absent'}</span></td>
+      </tr>`;
+  }).join('');
+}
+
+// ── Self check-in / check-out ───────────────────────────────────
+async function doScan(type) {
+  if (!currentUser?.qrCode) {
+    showScanResult('error', 'No QR Code', 'Your QR code has not been assigned yet. Contact admin.');
+    return;
+  }
+
+  const btnIn  = document.getElementById('btn-in');
+  const btnOut = document.getElementById('btn-out');
+  btnIn.disabled = true;
+  btnOut.disabled = true;
+
+  try {
+    const res = await api.post('/api/attendance/scan', {
+      qr_code:   currentUser.qrCode,
+      scan_type: type,
+      location:  'Self Check-in'
+    });
+
+    const timeStr = formatTime(res.scan_time);
+    showScanResult(
+      'ok',
+      type === 'in' ? `Checked In at ${timeStr}` : `Checked Out at ${timeStr}`,
+      `Welcome, ${currentUser.name.split(' ')[0]}! Have a great ${type === 'in' ? 'day' : 'evening'}.`
+    );
+    toast(
+      type === 'in' ? 'Checked In ✓' : 'Checked Out ✓',
+      `Recorded at ${timeStr}`,
+      'ok'
+    );
+
+    // Refresh attendance table
+    loadAttendance();
+
+  } catch(e) {
+    const msg = e.message;
+    if (msg.includes('DUPLICATE')) {
+      showScanResult('err', 'Already Recorded',
+        `You already checked ${type === 'in' ? 'in' : 'out'} recently. Try again later.`);
+      toast('Already recorded', 'Duplicate scan within 5 minutes', 'warn');
+    } else if (msg.includes('BLACKLISTED')) {
+      showScanResult('err', 'Account Suspended', 'Your account is suspended. Please contact the administrator.');
+      toast('Account suspended', 'Contact administration', 'err');
+    } else {
+      showScanResult('err', 'Check-in Failed', msg);
+      toast('Failed', msg, 'err');
+    }
+  } finally {
+    setTimeout(() => {
+      btnIn.disabled  = false;
+      btnOut.disabled = false;
+    }, 3000);
+  }
+}
+
+function showScanResult(type, title, sub) {
+  const el    = document.getElementById('scan-result');
+  const ico   = document.getElementById('scan-ico');
+  const tEl   = document.getElementById('scan-result-title');
+  const subEl = document.getElementById('scan-result-sub');
+
+  el.className = `scan-result show ${type === 'ok' ? 'ok' : 'err'}`;
+  tEl.textContent   = title;
+  subEl.textContent = sub;
+
+  if (type === 'ok') {
+    ico.innerHTML = `<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>`;
+  } else {
+    ico.innerHTML = `<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>`;
+  }
+
+  // Auto-hide after 6 seconds
+  setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+init();
+</script>
+</body>
+</html>

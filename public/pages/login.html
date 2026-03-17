@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAMPER – Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#0e8a7c;--teal-dark:#0a6b60;--teal-deeper:#085047;
+  --teal-light:#1ab5a4;--teal-glow:rgba(14,138,124,.15);
+  --navy:#0b1e24;--font:'Plus Jakarta Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--navy);min-height:100vh;display:flex;align-items:stretch;-webkit-font-smoothing:antialiased;}
+
+.brand-panel{
+  width:400px;flex-shrink:0;
+  background:linear-gradient(160deg,var(--teal-deeper) 0%,var(--teal-dark) 45%,var(--teal) 100%);
+  padding:52px 44px;display:flex;flex-direction:column;justify-content:space-between;
+  position:relative;overflow:hidden;
+}
+.brand-panel::before{content:'';position:absolute;top:-80px;right:-80px;width:280px;height:280px;border-radius:50%;border:1.5px solid rgba(255,255,255,.1);}
+.brand-panel::after{content:'';position:absolute;bottom:-50px;left:-50px;width:200px;height:200px;border-radius:50%;border:1.5px solid rgba(255,255,255,.07);}
+.brand-mark-row{display:flex;align-items:center;gap:12px;margin-bottom:48px;}
+.brand-qr{width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:9px;padding:7px;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;}
+.brand-qr span{background:rgba(255,255,255,.9);border-radius:1.5px;}
+.brand-qr span:nth-child(5){background:transparent;}
+.brand-name{font-family:var(--mono);font-size:18px;letter-spacing:3.5px;color:#fff;}
+.brand-headline h2{font-size:36px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:16px;}
+.brand-headline h2 em{font-style:normal;color:rgba(255,255,255,.45);}
+.brand-headline p{font-size:14.5px;color:rgba(255,255,255,.6);line-height:1.7;}
+.brand-stats{display:flex;margin-top:36px;border:1px solid rgba(255,255,255,.15);border-radius:10px;overflow:hidden;}
+.bstat{flex:1;padding:14px 16px;border-right:1px solid rgba(255,255,255,.12);}
+.bstat:last-child{border-right:none;}
+.bstat strong{display:block;font-family:var(--mono);font-size:20px;color:#fff;margin-bottom:2px;}
+.bstat span{font-size:11px;color:rgba(255,255,255,.5);}
+.brand-footer{font-family:var(--mono);font-size:9.5px;color:rgba(255,255,255,.3);letter-spacing:1px;}
+
+.form-panel{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  background:var(--navy);padding:48px;position:relative;
+}
+.form-panel::before{
+  content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(14,138,124,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(14,138,124,.04) 1px,transparent 1px);
+  background-size:44px 44px;pointer-events:none;
+}
+.form-box{width:100%;max-width:400px;position:relative;z-index:1;animation:fadeUp .5s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+.form-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--teal-light);margin-bottom:10px;opacity:.8;}
+.form-title{font-size:28px;font-weight:800;color:#fff;margin-bottom:6px;}
+.form-sub{font-size:13.5px;color:rgba(255,255,255,.38);margin-bottom:28px;}
+
+.role-tabs{display:flex;gap:6px;margin-bottom:26px;background:rgba(255,255,255,.05);border-radius:9px;padding:4px;}
+.role-tab{flex:1;padding:8px 6px;border-radius:6px;border:none;background:transparent;color:rgba(255,255,255,.38);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;}
+.role-tab:hover,.role-tab.active{background:var(--teal);color:#fff;}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.5px;margin-bottom:6px;text-transform:uppercase;}
+.iw{position:relative;}
+.iw svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:rgba(255,255,255,.25);pointer-events:none;transition:stroke .15s;}
+.iw:focus-within svg{stroke:var(--teal-light);}
+.iw input{width:100%;padding:12px 14px 12px 40px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:9px;font-family:var(--font);font-size:14px;color:#fff;outline:none;transition:border-color .15s,background .15s;}
+.iw input::placeholder{color:rgba(255,255,255,.2);}
+.iw input:focus{border-color:var(--teal);background:rgba(14,138,124,.08);}
+
+.form-options{display:flex;align-items:center;justify-content:space-between;margin:16px 0 22px;}
+.check-label{display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,.4);cursor:pointer;}
+.check-label input{accent-color:var(--teal);width:14px;height:14px;}
+.forgot{font-size:13px;color:var(--teal-light);text-decoration:none;opacity:.8;}
+.forgot:hover{opacity:1;}
+
+.err-box{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:9px;padding:10px 14px;font-size:13px;color:#fca5a5;margin-bottom:14px;display:none;animation:fadeUp .2s ease;}
+.err-box.show{display:block;}
+
+.btn-login{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--teal) 0%,var(--teal-dark) 100%);
+  border:none;border-radius:9px;font-family:var(--font);font-size:15px;font-weight:700;
+  color:#fff;cursor:pointer;box-shadow:0 4px 20px rgba(14,138,124,.4);
+  transition:transform .15s,box-shadow .15s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-login:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(14,138,124,.55);}
+.btn-login:disabled{opacity:.6;transform:none;}
+.form-note{text-align:center;margin-top:18px;font-size:11px;color:rgba(255,255,255,.18);font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<div class="brand-panel">
+  <div>
+    <div class="brand-mark-row">
+      <div class="brand-qr"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <span class="brand-name">PAMPER</span>
+    </div>
+    <div class="brand-headline">
+      <h2>Campus<br><em>Attendance</em><br>Secured.</h2>
+      <p>QR-based tracking for Moneague College — fast, contactless, and reliable.</p>
+    </div>
+    <div class="brand-stats">
+      <div class="bstat"><strong>350+</strong><span>Students</span></div>
+      <div class="bstat"><strong>99%</strong><span>Uptime</span></div>
+      <div class="bstat"><strong>Real-time</strong><span>Tracking</span></div>
+    </div>
+  </div>
+  <p class="brand-footer">PAMPER SOLUTIONS · MONEAGUE COLLEGE · 2026</p>
+</div>
+
+<div class="form-panel">
+  <div class="form-box">
+    <div class="form-eyebrow">// SECURE ACCESS</div>
+    <h1 class="form-title">Sign in</h1>
+    <p class="form-sub">Select your role and enter your credentials</p>
+
+    <div class="role-tabs">
+      <button class="role-tab active" data-role="admin"    onclick="setRole(this)">Admin</button>
+      <button class="role-tab"        data-role="security" onclick="setRole(this)">Security</button>
+      <button class="role-tab"        data-role="student"  onclick="setRole(this)">Student</button>
+    </div>
+
+    <div class="err-box" id="errBox"></div>
+
+    <div class="field">
+      <label>Email</label>
+      <div class="iw">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <input type="email" id="email" placeholder="your@email.edu" autocomplete="email">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <div class="iw">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+    </div>
+
+    <div class="form-options">
+      <label class="check-label"><input type="checkbox" id="remember"> Remember me</label>
+      <a class="forgot" href="#">Forgot password?</a>
+    </div>
+
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
+
+    <div style="display:flex;align-items:center;gap:12px;margin:20px 0;">
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.08);"></div>
+      <span style="font-size:11.5px;color:rgba(255,255,255,.22);">don't have an account?</span>
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.08);"></div>
+    </div>
+
+    <a href="/signup" style="display:block;width:100%;padding:13px;border:1.5px solid rgba(14,138,124,.35);border-radius:9px;text-align:center;color:var(--teal-light);font-family:var(--font);font-size:14px;font-weight:600;text-decoration:none;transition:all .15s;" onmouseover="this.style.background='rgba(14,138,124,.1)'" onmouseout="this.style.background='transparent'">
+      Create an Account
+    </a>
+
+    <p class="form-note" style="margin-top:18px;">PAMPER · ALL SESSIONS ARE LOGGED · BETA 2026</p>
+  </div>
+</div>
+
+<script>
+  // Fill demo credentials on role select
+  const demos = {
+    admin:    { email: 'admin@pamper.edu',    placeholder: 'admin@pamper.edu' },
+    security: { email: 'security@pamper.edu', placeholder: 'security@pamper.edu' },
+    student:  { email: 'john.brown@student.pamper.edu', placeholder: 'john.brown@student.pamper.edu' }
+  };
+
+  function setRole(btn) {
+    document.querySelectorAll('.role-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const d = demos[btn.dataset.role];
+    if (d) document.getElementById('email').placeholder = d.placeholder;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errBox');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  async function doLogin() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn      = document.getElementById('loginBtn');
+    const errBox   = document.getElementById('errBox');
+
+    errBox.classList.remove('show');
+    if (!email || !password) { showError('Please enter your email and password.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+
+      if (!res.ok) { showError(data.error || 'Login failed'); btn.disabled = false; btn.textContent = 'Sign In'; return; }
+
+      // Redirect based on role
+      if (data.user.role === 'student') {
+        window.location.href = '/student-home';
+      } else {
+        window.location.href = '/dashboard';
+      }
+    } catch (e) {
+      showError('Network error – please try again.');
+      btn.disabled = false; btn.textContent = 'Sign In';
+    }
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>

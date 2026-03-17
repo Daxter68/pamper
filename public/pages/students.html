@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PAMPER – Students</title>
+<link rel="stylesheet" href="/css/app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.iw-search{position:relative;flex:1;min-width:200px;max-width:320px;}
+.iw-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);pointer-events:none;}
+.iw-search input{width:100%;padding:9px 12px 9px 36px;border:1.5px solid var(--border);border-radius:var(--r);background:var(--surface);font-family:var(--font);font-size:13.5px;color:var(--text);outline:none;}
+.iw-search input:focus{border-color:var(--teal);}
+.iw-search input::placeholder{color:var(--muted);}
+select.fsel{padding:9px 13px;border:1.5px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:13.5px;color:var(--text);background:var(--surface);outline:none;}
+select.fsel:focus{border-color:var(--teal);}
+.stu-cell{display:flex;align-items:center;gap:10px;}
+.stu-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dark));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+.table-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;}
+/* View modal */
+.qr-display{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:center;margin-bottom:16px;}
+.qr-display canvas, .qr-display img{margin:0 auto;display:block;}
+.qr-code-val{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;word-break:break-all;}
+.detail-row{display:flex;gap:12px;margin-bottom:12px;}
+.detail-row>div{flex:1;}
+.detail-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.detail-val{font-size:13.5px;color:var(--text);font-weight:500;}
+</style>
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>Students</h2>
+    <div class="topbar-r">
+      <span class="chip chip-teal chip-mono">BETA</span>
+      <button class="btn btn-primary" onclick="openModal('addModal')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Student
+      </button>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="toolbar">
+      <div class="iw-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="search" placeholder="Search name, ID or email…" oninput="loadStudents()">
+      </div>
+      <select class="fsel" id="grade-filter" onchange="loadStudents()">
+        <option value="">All Grades</option>
+        <option>Grade 5</option><option>Grade 6</option><option>Grade 7</option>
+      </select>
+      <select class="fsel" id="qr-filter" onchange="loadStudents()">
+        <option value="">All QR Status</option>
+        <option value="active">Active</option>
+        <option value="pending">Pending</option>
+        <option value="revoked">Revoked</option>
+      </select>
+    </div>
+
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Student ID</th><th>Name</th><th>Grade</th><th>Email</th><th>QR Status</th><th>Blacklisted</th><th>Actions</th></tr></thead>
+          <tbody id="stu-body"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-footer"><span id="row-count">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <h3>Add New Student</h3>
+    <p>Fill in the details. A unique QR code is generated automatically.</p>
+    <div class="detail-row">
+      <div class="field"><label>Full Name</label><input type="text" id="add-name" placeholder="e.g. John Brown"></div>
+      <div class="field"><label>Student ID</label><input type="text" id="add-sid" placeholder="ST006" style="font-family:var(--mono)"></div>
+    </div>
+    <div class="detail-row">
+      <div class="field"><label>Email</label><input type="email" id="add-email" placeholder="john@student.pamper.edu"></div>
+      <div class="field"><label>Grade</label>
+        <select id="add-grade"><option>Grade 5</option><option>Grade 6</option><option>Grade 7</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Password</label><input type="password" id="add-pass" placeholder="Minimum 8 characters"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn btn-primary" id="add-btn" onclick="addStudent()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Student
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- View / Edit Student Modal -->
+<div class="modal-bg" id="viewModal">
+  <div class="modal">
+    <h3 id="view-name">Student Details</h3>
+    <p id="view-email" style="font-family:var(--mono);font-size:12px;"></p>
+
+    <div class="qr-display">
+      <div id="qr-canvas"></div>
+      <div class="qr-code-val" id="qr-val"></div>
+    </div>
+
+    <div class="detail-row">
+      <div><div class="detail-label">Student ID</div><div class="detail-val mono" id="view-sid">—</div></div>
+      <div><div class="detail-label">Grade</div><div class="detail-val" id="view-grade">—</div></div>
+      <div><div class="detail-label">QR Status</div><div class="detail-val" id="view-qrstatus">—</div></div>
+    </div>
+
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('viewModal')">Close</button>
+      <button class="btn btn-outline btn-sm" id="regen-btn" onclick="regenQR()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Regenerate QR
+      </button>
+      <button class="btn btn-danger btn-sm" id="blacklist-btn" onclick="toggleBlacklist()">Blacklist</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+injectSidebar('students');
+initAuth(['admin']);
+
+let viewingId = null;
+
+async function loadStudents() {
+  const search = document.getElementById('search').value;
+  const grade  = document.getElementById('grade-filter').value;
+  const params = new URLSearchParams({ role:'student' });
+  if (search) params.set('search', search);
+  if (grade)  params.set('grade', grade);
+
+  const res = await api.get(`/api/users?${params}`);
+  const body = document.getElementById('stu-body');
+  document.getElementById('row-count').textContent = `${res.data.length} student${res.data.length!==1?'s':''}`;
+
+  if (!res.data.length) {
+    body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">No students found</td></tr>';
+    return;
+  }
+
+  body.innerHTML = res.data.map(s => `
+    <tr>
+      <td class="mono">${s.student_id||'—'}</td>
+      <td><div class="stu-cell"><div class="stu-av">${initials(s.full_name)}</div>${s.full_name}</div></td>
+      <td>${s.grade||'—'}</td>
+      <td style="font-size:12.5px;color:var(--muted);">${s.email}</td>
+      <td><span class="pill ${s.qr_status==='active'?'pill-g':s.qr_status==='pending'?'pill-a':'pill-r'}">${s.qr_status||'—'}</span></td>
+      <td>${s.is_blacklisted?'<span class="pill pill-r">Yes</span>':'<span style="color:var(--muted);font-size:12px;">No</span>'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="viewStudent('${s.id}','${s.full_name}','${s.email}','${s.student_id||''}','${s.grade||''}','${s.qr_code||''}','${s.qr_status||''}','${s.is_blacklisted}')">View</button></td>
+    </tr>`).join('');
+}
+
+function viewStudent(id, name, email, sid, grade, qr, qrStatus, blacklisted) {
+  viewingId = id;
+  document.getElementById('view-name').textContent = name;
+  document.getElementById('view-email').textContent = email;
+  document.getElementById('view-sid').textContent   = sid || '—';
+  document.getElementById('view-grade').textContent = grade || '—';
+  document.getElementById('view-qrstatus').innerHTML= `<span class="pill ${qrStatus==='active'?'pill-g':qrStatus==='pending'?'pill-a':'pill-r'}">${qrStatus}</span>`;
+  document.getElementById('qr-val').textContent = qr;
+  document.getElementById('blacklist-btn').textContent = blacklisted==='true' ? 'Remove Blacklist' : 'Blacklist';
+  document.getElementById('blacklist-btn').className   = blacklisted==='true' ? 'btn btn-ghost btn-sm' : 'btn btn-danger btn-sm';
+
+  // Render QR
+  const c = document.getElementById('qr-canvas');
+  c.innerHTML = '';
+  if (qr) new QRCode(c, { text: qr, width:160, height:160, correctLevel: QRCode.CorrectLevel.M });
+
+  openModal('viewModal');
+}
+
+async function regenQR() {
+  if (!viewingId) return;
+  const btn = document.getElementById('regen-btn');
+  setLoading(btn, true);
+  try {
+    const res = await api.post(`/api/users/${viewingId}/regenerate-qr`);
+    toast('QR code regenerated', `New code: ${res.qr_code.slice(0,12)}…`, 'ok');
+    closeModal('viewModal');
+    loadStudents();
+  } catch(e) { toast('Failed', e.message, 'err'); }
+  finally { setLoading(btn, false); }
+}
+
+async function toggleBlacklist() {
+  if (!viewingId) return;
+  const btn = document.getElementById('blacklist-btn');
+  const isBlacklisted = btn.textContent.trim() === 'Remove Blacklist';
+  const reason = isBlacklisted ? null : prompt('Reason for blacklisting (optional):');
+  setLoading(btn, true);
+  try {
+    await api.post(`/api/users/${viewingId}/blacklist`, { blacklist: !isBlacklisted, reason });
+    toast(isBlacklisted ? 'Blacklist removed' : 'Student blacklisted', '', isBlacklisted ? 'ok' : 'warn');
+    closeModal('viewModal');
+    loadStudents();
+  } catch(e) { toast('Failed', e.message, 'err'); }
+  finally { setLoading(btn, false); }
+}
+
+async function addStudent() {
+  const name  = document.getElementById('add-name').value.trim();
+  const sid   = document.getElementById('add-sid').value.trim();
+  const email = document.getElementById('add-email').value.trim();
+  const grade = document.getElementById('add-grade').value;
+  const pass  = document.getElementById('add-pass').value;
+  if (!name||!email||!pass) { toast('Missing fields','Fill all required fields','err'); return; }
+
+  const btn = document.getElementById('add-btn');
+  setLoading(btn, true);
+  try {
+    await api.post('/api/users', { full_name:name, student_id:sid, email, grade, password:pass, role:'student' });
+    toast('Student added!', name+' has been enrolled', 'ok');
+    closeModal('addModal');
+    loadStudents();
+    ['add-name','add-sid','add-email','add-pass'].forEach(id=>document.getElementById(id).value='');
+  } catch(e) { toast('Failed', e.message, 'err'); }
+  finally { setLoading(btn, false); }
+}
+
+loadStudents();
+</script>
+</body>
+</html>

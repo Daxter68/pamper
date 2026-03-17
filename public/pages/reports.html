@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PAMPER – Reports</title>
+<link rel="stylesheet" href="/css/app.css">
+<style>
+.report-types{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.rtype{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:20px 18px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden;animation:fadeUp .35s ease both;}
+.rtype:nth-child(2){animation-delay:.07s}.rtype:nth-child(3){animation-delay:.14s}
+.rtype:hover{border-color:var(--teal);transform:translateY(-2px);box-shadow:0 6px 22px rgba(14,138,124,.12);}
+.rtype.active{border-color:var(--teal);background:var(--teal-pale);}
+.rt-badge{position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--teal);background:var(--teal-glow);padding:3px 8px;border-radius:20px;}
+.rt-ico{width:38px;height:38px;border-radius:10px;background:var(--teal-glow);display:flex;align-items:center;justify-content:center;margin-bottom:12px;}
+.rt-ico svg{width:19px;height:19px;stroke:var(--teal);}
+.rt-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.rt-desc{font-size:12.5px;color:var(--muted);line-height:1.55;}
+.opts-row{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+select.fsel,input[type=date].fsel,input[type=number].fsel{
+  padding:9px 13px;border:1.5px solid var(--border);border-radius:var(--r);
+  font-family:var(--font);font-size:13.5px;color:var(--text);background:var(--surface);outline:none;
+}
+select.fsel:focus,input[type=date].fsel:focus,input[type=number].fsel:focus{border-color:var(--teal);}
+
+/* Chart */
+.chart-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:24px;margin-bottom:20px;}
+.chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.chart-head h3{font-size:14.5px;font-weight:700;}
+.legend{display:flex;gap:14px;}
+.leg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+.leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.bars-wrap{display:flex;align-items:flex-end;gap:8px;height:160px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.bar-pair{display:flex;gap:3px;align-items:flex-end;width:100%;height:130px;}
+.bar{flex:1;border-radius:4px 4px 0 0;min-height:2px;transition:height .7s cubic-bezier(.34,1.3,.64,1);}
+.bar-p{background:linear-gradient(180deg,var(--teal-light),var(--teal));}
+.bar-a{background:rgba(239,68,68,.22);}
+.bar-lbl{font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+.bar-pct{font-family:var(--mono);font-size:10px;color:var(--teal);font-weight:500;}
+
+/* Results table */
+.result-panel{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;margin-bottom:20px;}
+
+/* Exports */
+.export-row{display:flex;gap:12px;flex-wrap:wrap;}
+.exp-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .18s;flex:1;min-width:150px;}
+.exp-card:hover{border-color:var(--teal);background:var(--teal-pale);transform:translateY(-1px);}
+.exp-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.exp-ico svg{width:17px;height:17px;}
+.ei-pdf{background:var(--red-p)}.ei-pdf svg{stroke:var(--red)}
+.ei-xls{background:var(--green-p)}.ei-xls svg{stroke:var(--green)}
+.ei-csv{background:var(--teal-glow)}.ei-csv svg{stroke:var(--teal)}
+.exp-title{font-size:13px;font-weight:700;color:var(--text);}
+.exp-sub{font-size:11.5px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>Attendance Reports</h2>
+    <div class="topbar-r"><span class="chip chip-teal chip-mono">BETA</span></div>
+  </div>
+
+  <div class="page">
+    <!-- Report type -->
+    <div class="report-types">
+      <div class="rtype active" data-type="daily" onclick="setType(this)">
+        <div class="rt-badge">DAILY</div>
+        <div class="rt-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div class="rt-title">Daily Report</div>
+        <div class="rt-desc">Full breakdown for a single day with check-in times.</div>
+      </div>
+      <div class="rtype" data-type="weekly" onclick="setType(this)">
+        <div class="rt-badge">WEEKLY</div>
+        <div class="rt-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div class="rt-title">Weekly Report</div>
+        <div class="rt-desc">7-day trend with daily present/absent counts.</div>
+      </div>
+      <div class="rtype" data-type="monthly" onclick="setType(this)">
+        <div class="rt-badge">MONTHLY</div>
+        <div class="rt-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="rt-title">Monthly Report</div>
+        <div class="rt-desc">Per-student attendance % for a full month.</div>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="opts-row" id="opts-row">
+      <input type="date" class="fsel" id="opt-date" value="">
+      <select class="fsel" id="opt-month" style="display:none;">
+        <option value="1">January</option><option value="2">February</option>
+        <option value="3">March</option><option value="4">April</option>
+        <option value="5">May</option><option value="6">June</option>
+        <option value="7">July</option><option value="8">August</option>
+        <option value="9">September</option><option value="10">October</option>
+        <option value="11">November</option><option value="12">December</option>
+      </select>
+      <input type="number" class="fsel" id="opt-year" value="" min="2020" max="2100" style="width:90px;display:none;">
+      <button class="btn btn-primary" onclick="generateReport()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Generate
+      </button>
+    </div>
+
+    <!-- Chart (weekly only) -->
+    <div class="chart-card" id="chart-card" style="display:none;">
+      <div class="chart-head">
+        <h3 id="chart-title">Weekly Overview</h3>
+        <div class="legend">
+          <div class="leg"><div class="leg-dot" style="background:var(--teal)"></div>Present</div>
+          <div class="leg"><div class="leg-dot" style="background:rgba(239,68,68,.3)"></div>Absent</div>
+        </div>
+      </div>
+      <div class="bars-wrap" id="chart-bars"></div>
+    </div>
+
+    <!-- Results table -->
+    <div class="result-panel" id="result-panel" style="display:none;">
+      <div class="ph">
+        <h3 id="result-title">Results</h3>
+        <span id="result-summary" style="font-size:12.5px;color:var(--muted);"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="result-head"></tr></thead>
+          <tbody id="result-body"></tbody>
+        </table>
+      </div>
+      <div class="table-footer"><span id="result-count">—</span></div>
+    </div>
+
+    <!-- Exports -->
+    <div class="export-row">
+      <div class="exp-card" onclick="exportReport('csv')">
+        <div class="exp-ico ei-csv"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+        <div><div class="exp-title">Export CSV</div><div class="exp-sub">Raw data spreadsheet</div></div>
+      </div>
+      <div class="exp-card" onclick="toast('PDF export','Coming in next iteration','warn')">
+        <div class="exp-ico ei-pdf"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <div><div class="exp-title">Export PDF</div><div class="exp-sub">Formatted printable report</div></div>
+      </div>
+      <div class="exp-card" onclick="toast('Excel export','Coming in next iteration','warn')">
+        <div class="exp-ico ei-xls"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg></div>
+        <div><div class="exp-title">Export Excel</div><div class="exp-sub">Spreadsheet with formatting</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+injectSidebar('reports');
+initAuth(['admin','security']);
+
+let reportType = 'daily';
+let reportData  = null;
+
+// Init date defaults
+const now = new Date();
+document.getElementById('opt-date').value  = today();
+document.getElementById('opt-month').value = now.getMonth() + 1;
+document.getElementById('opt-year').value  = now.getFullYear();
+
+function setType(el) {
+  document.querySelectorAll('.rtype').forEach(r => r.classList.remove('active'));
+  el.classList.add('active');
+  reportType = el.dataset.type;
+
+  // Toggle controls
+  const isMonthly = reportType === 'monthly';
+  const isDaily   = reportType === 'daily';
+  document.getElementById('opt-date').style.display  = isMonthly ? 'none' : '';
+  document.getElementById('opt-month').style.display = isMonthly ? '' : 'none';
+  document.getElementById('opt-year').style.display  = isMonthly ? '' : 'none';
+
+  document.getElementById('chart-card').style.display   = 'none';
+  document.getElementById('result-panel').style.display  = 'none';
+}
+
+async function generateReport() {
+  reportData = null;
+  try {
+    if (reportType === 'daily') {
+      const date = document.getElementById('opt-date').value || today();
+      reportData = await api.get(`/api/reports/daily?date=${date}`);
+      renderDailyResults(reportData);
+    } else if (reportType === 'weekly') {
+      const date = document.getElementById('opt-date').value || today();
+      // Start from 6 days before selected date
+      const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() - 6);
+      const start = d.toISOString().split('T')[0];
+      reportData = await api.get(`/api/reports/weekly?start=${start}`);
+      renderWeeklyResults(reportData);
+    } else {
+      const month = document.getElementById('opt-month').value;
+      const year  = document.getElementById('opt-year').value;
+      reportData = await api.get(`/api/reports/monthly?month=${month}&year=${year}`);
+      renderMonthlyResults(reportData);
+    }
+  } catch(e) { toast('Failed to generate report', e.message, 'err'); }
+}
+
+function renderDailyResults(data) {
+  document.getElementById('chart-card').style.display  = 'none';
+  document.getElementById('result-panel').style.display = '';
+  document.getElementById('result-title').textContent   = `Daily Report — ${formatDate(data.date)}`;
+  document.getElementById('result-summary').textContent = `${data.present} present · ${data.absent} absent · ${data.rate}% rate`;
+  document.getElementById('result-head').innerHTML = '<th>ID</th><th>Name</th><th>Grade</th><th>Time In</th><th>Time Out</th><th>Status</th>';
+  document.getElementById('result-count').textContent = `${data.total} students`;
+  document.getElementById('result-body').innerHTML = data.records.map(r => `
+    <tr>
+      <td class="mono">${r.student_id||'—'}</td><td>${r.full_name}</td><td>${r.grade||'—'}</td>
+      <td class="mono">${r.time_in}</td><td class="mono">${r.time_out}</td>
+      <td><span class="pill ${r.status==='Present'?'pill-g':'pill-r'}">${r.status}</span></td>
+    </tr>`).join('');
+}
+
+function renderWeeklyResults(data) {
+  document.getElementById('chart-card').style.display  = '';
+  document.getElementById('result-panel').style.display = '';
+  document.getElementById('chart-title').textContent   = `Weekly Overview — ${data.range}`;
+  document.getElementById('result-title').textContent  = 'Day-by-Day Breakdown';
+  document.getElementById('result-summary').textContent= `${data.total_students} students total`;
+  document.getElementById('result-head').innerHTML = '<th>Date</th><th>Day</th><th>Present</th><th>Absent</th><th>Rate</th>';
+  document.getElementById('result-count').textContent = '7 days';
+
+  const maxPresent = Math.max(...data.days.map(d => d.present), 1);
+  const maxH = 130;
+  document.getElementById('chart-bars').innerHTML = data.days.map(d => {
+    const ph = Math.round((d.present / maxPresent) * maxH);
+    const ah = Math.round((d.absent  / Math.max(d.total, 1)) * maxH * 0.4);
+    return `<div class="bar-col">
+      <div class="bar-pair">
+        <div class="bar bar-p" style="height:${ph}px" title="${d.present} present"></div>
+        <div class="bar bar-a" style="height:${ah}px" title="${d.absent} absent"></div>
+      </div>
+      <span class="bar-lbl">${d.day}</span>
+      <span class="bar-pct">${d.rate}%</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('result-body').innerHTML = data.days.map(d => `
+    <tr>
+      <td class="mono">${d.date}</td><td>${d.day}</td>
+      <td><span style="color:var(--green);font-weight:600;">${d.present}</span></td>
+      <td><span style="color:var(--red);font-weight:600;">${d.absent}</span></td>
+      <td class="mono">${d.rate}%</td>
+    </tr>`).join('');
+}
+
+function renderMonthlyResults(data) {
+  document.getElementById('chart-card').style.display  = 'none';
+  document.getElementById('result-panel').style.display = '';
+  const mNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('result-title').textContent  = `Monthly Report — ${mNames[data.month]} ${data.year}`;
+  document.getElementById('result-summary').textContent= `${data.working_days} school days · ${data.total_students} students`;
+  document.getElementById('result-head').innerHTML = '<th>ID</th><th>Name</th><th>Grade</th><th>Days Present</th><th>Days Absent</th><th>Attendance %</th>';
+  document.getElementById('result-count').textContent  = `${data.total_students} students`;
+  document.getElementById('result-body').innerHTML = data.records.map(r => `
+    <tr>
+      <td class="mono">${r.student_id||'—'}</td><td>${r.full_name}</td><td>${r.grade||'—'}</td>
+      <td><span style="color:var(--green);font-weight:600;">${r.days_present}</span></td>
+      <td><span style="color:var(--red);font-weight:600;">${r.days_absent}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${r.rate}%;background:${r.rate>=80?'var(--green)':r.rate>=60?'var(--amber)':'var(--red)'};border-radius:3px;"></div>
+          </div>
+          <span class="mono" style="font-size:12px;min-width:32px;">${r.rate}%</span>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function exportReport(format) {
+  if (!reportData) { toast('No report generated','Run a report first','warn'); return; }
+
+  let rows = [], headers = [], filename = 'pamper_report';
+
+  if (reportType === 'daily') {
+    headers = ['Student ID','Name','Grade','Time In','Time Out','Status'];
+    rows = reportData.records.map(r => [r.student_id||'',r.full_name,r.grade||'',r.time_in,r.time_out,r.status]);
+    filename = `daily_${reportData.date}`;
+  } else if (reportType === 'weekly') {
+    headers = ['Date','Day','Present','Absent','Rate'];
+    rows = reportData.days.map(d => [d.date,d.day,d.present,d.absent,`${d.rate}%`]);
+    filename = `weekly_${reportData.range?.replace(' ','_')||'report'}`;
+  } else {
+    headers = ['Student ID','Name','Grade','Days Present','Days Absent','Rate %'];
+    rows = reportData.records.map(r => [r.student_id||'',r.full_name,r.grade||'',r.days_present,r.days_absent,r.rate]);
+    filename = `monthly_${reportData.year}_${reportData.month}`;
+  }
+
+  const csv  = [headers.join(','), ...rows.map(r => r.map(v=>`"${v}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `${filename}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  toast('Export ready', `${filename}.csv`, 'ok');
+}
+
+// Auto-generate on load
+generateReport();
+</script>
+</body>
+</html>

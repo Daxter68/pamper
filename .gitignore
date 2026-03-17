@@ -1,0 +1,16 @@
+# Dependencies - never upload this
+node_modules/
+
+# Environment variables - contains your secret keys
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime
+*.pid

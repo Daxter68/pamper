@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PAMPER – Attendance Records</title>
+<link rel="stylesheet" href="/css/app.css">
+<style>
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;}
+.sum-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:18px 20px;display:flex;align-items:center;gap:14px;animation:fadeUp .35s ease both;}
+.sum-card:nth-child(2){animation-delay:.07s}.sum-card:nth-child(3){animation-delay:.14s}
+.sum-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sum-ico svg{width:18px;height:18px;}
+.si-t{background:var(--teal-glow)}.si-t svg{stroke:var(--teal)}
+.si-g{background:var(--green-p)}.si-g svg{stroke:var(--green)}
+.si-r{background:var(--red-p)}.si-r svg{stroke:var(--red)}
+.sum-val{font-size:26px;font-weight:800;font-family:var(--mono);color:var(--text);line-height:1;}
+.sum-lbl{font-size:12px;color:var(--muted);margin-top:2px;}
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.iw-search{position:relative;flex:1;min-width:180px;max-width:280px;}
+.iw-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);pointer-events:none;}
+.iw-search input{width:100%;padding:9px 12px 9px 36px;border:1.5px solid var(--border);border-radius:var(--r);background:var(--surface);font-family:var(--font);font-size:13.5px;color:var(--text);outline:none;}
+.iw-search input:focus{border-color:var(--teal);}
+.iw-search input::placeholder{color:var(--muted);}
+select.fsel{padding:9px 13px;border:1.5px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:13.5px;color:var(--text);background:var(--surface);outline:none;}
+select.fsel:focus{border-color:var(--teal);}
+input[type=date].fsel{padding:9px 13px;border:1.5px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:13.5px;color:var(--text);background:var(--surface);outline:none;}
+input[type=date].fsel:focus{border-color:var(--teal);}
+.table-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;}
+</style>
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>Attendance Records</h2>
+    <div class="topbar-r">
+      <span class="chip chip-teal chip-mono">BETA</span>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
+    </div>
+  </div>
+
+  <div class="page">
+    <!-- Summary -->
+    <div class="summary-grid">
+      <div class="sum-card">
+        <div class="sum-ico si-t"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+        <div><div class="sum-val" id="s-total">—</div><div class="sum-lbl">Total students</div></div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-ico si-g"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <div><div class="sum-val" id="s-present">—</div><div class="sum-lbl">Present</div></div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-ico si-r"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+        <div><div class="sum-val" id="s-absent">—</div><div class="sum-lbl">Absent</div></div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="toolbar">
+      <div class="iw-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="search" placeholder="Search name or ID…" oninput="loadRecords()">
+      </div>
+      <input type="date" class="fsel" id="date-picker" onchange="loadRecords()">
+      <select class="fsel" id="status-filter" onchange="loadRecords()">
+        <option value="">All Status</option>
+        <option value="present">Present</option>
+        <option value="absent">Absent</option>
+      </select>
+    </div>
+
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Student ID</th><th>Name</th><th>Grade</th>
+              <th>Time In</th><th>Time Out</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="att-body">
+            <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--muted);">Loading records…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span id="row-count">—</span>
+        <span class="mono" style="font-size:12px;" id="date-label">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+injectSidebar('attendance');
+initAuth(['admin','security']);
+
+// Set today's date as default
+const dp = document.getElementById('date-picker');
+dp.value = today();
+
+let cachedData = [];
+
+async function loadRecords() {
+  const date   = dp.value || today();
+  const status = document.getElementById('status-filter').value;
+  const search = document.getElementById('search').value.toLowerCase();
+
+  const params = new URLSearchParams({ date });
+  if (status) params.set('status', status);
+
+  try {
+    const res = await api.get(`/api/attendance?${params}`);
+    document.getElementById('s-total').textContent   = res.total;
+    document.getElementById('s-present').textContent = res.present;
+    document.getElementById('s-absent').textContent  = res.absent;
+    document.getElementById('date-label').textContent = formatDate(date);
+
+    // Client-side search filter
+    cachedData = res.data;
+    renderTable(search ? cachedData.filter(r =>
+      r.full_name.toLowerCase().includes(search) ||
+      (r.student_id||'').toLowerCase().includes(search)
+    ) : cachedData);
+  } catch(e) {
+    toast('Failed to load records', e.message, 'err');
+  }
+}
+
+function renderTable(data) {
+  const body = document.getElementById('att-body');
+  document.getElementById('row-count').textContent = `${data.length} record${data.length!==1?'s':''}`;
+  if (!data.length) {
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--muted);">No records found</td></tr>';
+    return;
+  }
+  body.innerHTML = data.map(r => `
+    <tr>
+      <td class="mono">${r.student_id||'—'}</td>
+      <td>${r.full_name}</td>
+      <td>${r.grade||'—'}</td>
+      <td class="mono">${r.time_in||'—'}</td>
+      <td class="mono">${r.time_out||'—'}</td>
+      <td><span class="pill ${r.status==='present'?'pill-g':'pill-r'}">${r.status==='present'?'Present':'Absent'}</span></td>
+    </tr>`).join('');
+}
+
+function exportCSV() {
+  if (!cachedData.length) { toast('No data to export','','warn'); return; }
+  const headers = ['Student ID','Name','Grade','Date','Time In','Time Out','Status'];
+  const rows = cachedData.map(r =>
+    [r.student_id||'',r.full_name,r.grade||'',r.date,r.time_in||'',r.time_out||'',r.status]
+      .map(v => `"${v}"`).join(',')
+  );
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `attendance_${dp.value||today()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Export ready', `attendance_${dp.value||today()}.csv`, 'ok');
+}
+
+loadRecords();
+</script>
+</body>
+</html>
