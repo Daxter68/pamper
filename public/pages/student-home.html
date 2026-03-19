@@ -3,165 +3,144 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PAMPER – Student Portal</title>
+<title>PAMPER Student Portal</title>
 <link rel="stylesheet" href="/css/app.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="icon" type="image/png" href="/images/Logo30x50.png">
+
 <style>
-/* ── Student-specific layout ── */
 .student-layout {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 320px 1fr;
   gap: 20px;
   align-items: start;
 }
 
-/* ── Profile + QR card ── */
+/* ── ID card ── */
 .id-card {
   background: var(--navy);
-  border-radius: 18px;
+  border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(14,138,124,.25);
-  box-shadow: 0 16px 48px rgba(0,0,0,.22);
-  animation: fadeUp .4s ease both;
+  box-shadow: 0 12px 40px rgba(0,0,0,.2);
 }
 .id-card-header {
-  background: linear-gradient(135deg, var(--teal-deeper, #085047) 0%, var(--teal-dark) 50%, var(--teal) 100%);
-  padding: 28px 24px 20px;
+  background: linear-gradient(135deg, #085047 0%, #0a6b60 50%, #0e8a7c 100%);
+  padding: 26px 22px 20px;
   text-align: center;
   position: relative;
   overflow: hidden;
 }
 .id-card-header::before {
-  content: ''; position: absolute; top: -40px; right: -40px;
-  width: 130px; height: 130px; border-radius: 50%;
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 120px; height: 120px; border-radius: 50%;
   border: 1.5px solid rgba(255,255,255,.1);
 }
-.id-card-header::after {
-  content: ''; position: absolute; bottom: -30px; left: -30px;
-  width: 100px; height: 100px; border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,.08);
-}
-.student-avatar {
-  width: 64px; height: 64px; border-radius: 50%;
+.stu-av {
+  width: 62px; height: 62px; border-radius: 50%;
   background: rgba(255,255,255,.2);
   border: 2.5px solid rgba(255,255,255,.4);
   display: flex; align-items: center; justify-content: center;
-  font-size: 24px; font-weight: 800; color: #fff;
+  font-size: 22px; font-weight: 800; color: #fff;
   margin: 0 auto 12px; position: relative; z-index: 1;
 }
-.student-name { font-size: 18px; font-weight: 800; color: #fff; position: relative; z-index: 1; }
-.student-id   { font-family: var(--mono); font-size: 12px; color: rgba(255,255,255,.6); margin-top: 4px; position: relative; z-index: 1; }
-.student-grade {
-  display: inline-block; margin-top: 10px; padding: 4px 14px;
-  border-radius: 20px; background: rgba(255,255,255,.15);
-  font-size: 12px; font-weight: 600; color: rgba(255,255,255,.85);
+.stu-name  { font-size: 17px; font-weight: 800; color: #fff; position: relative; z-index: 1; }
+.stu-id    { font-family: var(--mono); font-size: 12px; color: rgba(255,255,255,.55); margin-top: 3px; position: relative; z-index: 1; }
+.stu-grade {
+  display: inline-block; margin-top: 10px;
+  padding: 3px 14px; border-radius: 20px;
+  background: rgba(255,255,255,.15);
+  font-size: 12px; font-weight: 600; color: rgba(255,255,255,.8);
   position: relative; z-index: 1;
 }
 
-/* QR section */
+/* ── QR section ── */
 .qr-section {
-  padding: 22px;
+  padding: 20px 22px;
   text-align: center;
   border-bottom: 1px solid rgba(14,138,124,.12);
 }
 .qr-section h3 {
-  font-size: 13px; font-weight: 700; color: rgba(255,255,255,.7);
-  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
+  font-size: 11px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 14px;
 }
-#qr-canvas { margin: 0 auto; display: block; }
-#qr-canvas canvas, #qr-canvas img { border-radius: 10px; }
-.qr-code-text {
-  font-family: var(--mono); font-size: 10px;
-  color: rgba(255,255,255,.3); margin-top: 10px;
+#qr-canvas canvas, #qr-canvas img {
+  margin: 0 auto; display: block; border-radius: 8px;
+}
+.qr-val {
+  font-family: var(--mono); font-size: 9.5px;
+  color: var(--muted); margin-top: 8px;
   word-break: break-all; padding: 0 8px;
 }
-.qr-instructions {
-  font-size: 12px; color: rgba(255,255,255,.45);
-  margin-top: 10px; line-height: 1.6;
-}
+.qr-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
 
-/* Self check-in buttons */
-.checkin-section {
+/* ── Checkin CTA ── */
+.checkin-cta {
   padding: 18px 22px;
 }
-.checkin-section h3 {
-  font-size: 12px; font-weight: 700; color: rgba(255,255,255,.5);
-  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;
+.checkin-cta h3 {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
 }
-.checkin-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.btn-checkin {
-  padding: 13px 10px; border-radius: 10px; border: none;
-  font-family: var(--font); font-size: 14px; font-weight: 700;
-  cursor: pointer; transition: all .18s;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-.btn-checkin svg { width: 17px; height: 17px; stroke: currentColor; flex-shrink: 0; }
-.btn-in {
+.btn-checkin-big {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 14px;
   background: linear-gradient(135deg, var(--teal), var(--teal-dark));
-  color: #fff; box-shadow: 0 4px 16px rgba(14,138,124,.4);
+  border: none; border-radius: 10px;
+  font-family: var(--font); font-size: 15px; font-weight: 800;
+  color: #fff; cursor: pointer;
+  box-shadow: 0 4px 18px rgba(14,138,124,.4);
+  text-decoration: none;
+  transition: transform .15s, box-shadow .15s;
 }
-.btn-in:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(14,138,124,.5); }
-.btn-out {
-  background: rgba(255,255,255,.07);
-  color: rgba(255,255,255,.7);
-  border: 1.5px solid rgba(255,255,255,.12);
+.btn-checkin-big:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 26px rgba(14,138,124,.55);
 }
-.btn-out:hover { background: rgba(255,255,255,.12); color: #fff; }
-.btn-checkin:disabled { opacity: .5; transform: none !important; cursor: not-allowed; }
+.btn-checkin-big svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; }
 
 /* ── Right column ── */
 .right-col { display: flex; flex-direction: column; gap: 18px; }
 
-/* Stats row */
-.stats-row {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+/* ── Stats ── */
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.stat-card {
+  background: var(--surface); border-radius: var(--r);
+  border: 1px solid var(--border); padding: 18px 16px;
+  animation: fadeUp .35s ease both;
 }
-.stat-card { animation-delay: .05s; }
-.stat-card:nth-child(2) { animation-delay: .1s; }
-.stat-card:nth-child(3) { animation-delay: .15s; }
+.stat-card:nth-child(2) { animation-delay: .07s; }
+.stat-card:nth-child(3) { animation-delay: .14s; }
+.stat-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 10px;
+}
+.stat-icon svg { width: 17px; height: 17px; }
+.si-t { background: var(--teal-glow); } .si-t svg { stroke: var(--teal); }
+.si-r { background: var(--red-p); }     .si-r svg { stroke: var(--red); }
+.si-g { background: var(--green-p); }   .si-g svg { stroke: var(--green); }
+.stat-val { font-size: 26px; font-weight: 800; font-family: var(--mono); color: var(--text); line-height: 1; }
+.stat-lbl { font-size: 12px; color: var(--muted); margin-top: 3px; }
 
-/* Rate bar */
-.rate-bar-wrap { padding: 0 20px 18px; }
-.rate-label-row {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 8px;
-}
-.rate-label-row span { font-size: 12.5px; color: var(--muted); font-weight: 500; }
-.rate-label-row strong { font-size: 16px; color: var(--teal); font-family: var(--mono); }
-.rate-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
-.rate-fill {
+/* ── Rate bar ── */
+.rate-bar-bg { height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+.rate-bar-fill {
   height: 100%; border-radius: 4px;
   background: linear-gradient(90deg, var(--teal), var(--teal-light));
   width: 0%; transition: width 1.2s cubic-bezier(.34,1.2,.64,1);
 }
 
-/* Attendance history table */
-.att-table-wrap { max-height: 380px; overflow-y: auto; }
+/* ── Attendance table ── */
+.att-wrap { max-height: 400px; overflow-y: auto; }
 
-/* Last scan status banner */
-.scan-result {
-  padding: 14px 20px; border-radius: 10px; margin-bottom: 14px;
-  display: none; align-items: center; gap: 12px;
-  animation: fadeUp .25s ease;
-}
-.scan-result.show { display: flex; }
-.scan-result.ok  { background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.3); color: #6ee7b7; }
-.scan-result.err { background: rgba(239,68,68,.12);  border: 1px solid rgba(239,68,68,.3);  color: #fca5a5; }
-.scan-result svg { width: 20px; height: 20px; flex-shrink: 0; }
-.scan-result-text strong { display: block; font-size: 14px; font-weight: 700; }
-.scan-result-text span   { font-size: 12px; opacity: .8; }
-
-/* Upcoming / no data state */
-.empty-state {
-  text-align: center; padding: 36px 20px;
-  color: var(--muted); font-size: 13.5px;
-}
-.empty-state svg { width: 40px; height: 40px; stroke: var(--border); margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 </style>
 </head>
 <body>
 
-<!-- Student sidebar (injected by JS with student nav) -->
 <div id="sidebar-root"></div>
 
 <div class="main">
@@ -169,95 +148,77 @@
     <h2>Student Portal</h2>
     <div class="topbar-r">
       <span class="chip chip-teal chip-mono">BETA</span>
-      <span style="font-size:12.5px;color:var(--muted);" id="date-display"></span>
+      <span id="date-display" style="font-size:12.5px;color:var(--muted);"></span>
     </div>
   </div>
 
   <div class="page">
     <div class="student-layout">
 
-      <!-- ── Left: ID card + QR + check-in ── -->
+      <!-- ── Left: ID card ── -->
       <div>
         <div class="id-card">
           <!-- Header -->
           <div class="id-card-header">
-            <div class="student-avatar" id="stu-av">?</div>
-            <div class="student-name"  id="stu-name">Loading…</div>
-            <div class="student-id"   id="stu-id"></div>
-            <div class="student-grade" id="stu-grade"></div>
+            <div class="stu-av" id="stu-av">?</div>
+            <div class="stu-name"  id="stu-name">Loading…</div>
+            <div class="stu-id"    id="stu-id"></div>
+            <div class="stu-grade" id="stu-grade" style="display:none;"></div>
           </div>
 
           <!-- QR Code -->
           <div class="qr-section">
             <h3>Your QR Card</h3>
             <div id="qr-canvas"></div>
-            <div class="qr-code-text" id="qr-text"></div>
-            <p class="qr-instructions">Present this QR code at the campus gate.<br>Do not share it with anyone.</p>
+            <div class="qr-val"  id="qr-val"></div>
+            <p class="qr-hint">Present at the campus gate to check in</p>
           </div>
 
-          <!-- Self check-in (optional — if campus allows self-scan) -->
-          <div class="checkin-section">
-            <h3>Manual Check-in</h3>
-            <p id="location-badge" style="font-size:11.5px;color:var(--muted);margin-bottom:12px;font-family:var(--mono);">📍 Loading location settings…</p>
-            <div id="debug-panel" style="margin-bottom:12px;"></div>
-            <div id="scan-result" class="scan-result">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="scan-ico"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-              <div class="scan-result-text">
-                <strong id="scan-result-title"></strong>
-                <span   id="scan-result-sub"></span>
-              </div>
-            </div>
-            <div class="checkin-btns">
-              <button class="btn-checkin btn-in" id="btn-in" onclick="doScan('in')">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                Check In
-              </button>
-              <button class="btn-checkin btn-out" id="btn-out" onclick="doScan('out')">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                Check Out
-              </button>
-            </div>
+          <!-- Check-in CTA -->
+          <div class="checkin-cta">
+            <h3>Attendance</h3>
+            <a href="/checkin" class="btn-checkin-big">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              Check In / Out
+            </a>
           </div>
         </div>
       </div>
 
-      <!-- ── Right: stats + attendance history ── -->
+      <!-- ── Right column ── -->
       <div class="right-col">
 
         <!-- Stats -->
         <div class="stats-row">
-          <div class="stat-card sc-t">
-            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-            <div class="sl">Days Present</div>
-            <div class="sv" id="stat-present">—</div>
-            <div class="ss">This period</div>
+          <div class="stat-card">
+            <div class="stat-icon si-t"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="stat-val" id="stat-present">—</div>
+            <div class="stat-lbl">Days Present</div>
           </div>
-          <div class="stat-card sc-r">
-            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-            <div class="sl">Days Absent</div>
-            <div class="sv" id="stat-absent">—</div>
-            <div class="ss">This period</div>
+          <div class="stat-card">
+            <div class="stat-icon si-r"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            <div class="stat-val" id="stat-absent">—</div>
+            <div class="stat-lbl">Days Absent</div>
           </div>
-          <div class="stat-card sc-g">
-            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-            <div class="sl">Attendance Rate</div>
-            <div class="sv" id="stat-rate">—</div>
-            <div class="ss" id="stat-rate-label">Overall</div>
+          <div class="stat-card">
+            <div class="stat-icon si-g"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <div class="stat-val" id="stat-rate">—</div>
+            <div class="stat-lbl">Attendance Rate</div>
           </div>
         </div>
 
-        <!-- Attendance rate progress bar -->
-        <div class="panel" style="padding-bottom:4px;">
+        <!-- Rate bar -->
+        <div class="panel">
           <div class="ph">
             <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Attendance Rate</h3>
-            <span id="rate-chip" class="chip chip-teal" style="font-family:var(--mono);font-size:11px;">—</span>
+            <span id="rate-chip" style="font-family:var(--mono);font-size:12px;color:var(--teal);font-weight:700;">—</span>
           </div>
-          <div class="rate-bar-wrap">
-            <div class="rate-label-row">
+          <div style="padding:4px 20px 18px;">
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:6px;">
               <span id="rate-desc">Present days out of total school days</span>
-              <strong id="rate-pct">—</strong>
+              <span id="rate-pct" style="font-family:var(--mono);font-weight:700;color:var(--teal);">—</span>
             </div>
-            <div class="rate-bg"><div class="rate-fill" id="rate-fill"></div></div>
+            <div class="rate-bar-bg"><div class="rate-bar-fill" id="rate-fill"></div></div>
           </div>
         </div>
 
@@ -267,19 +228,13 @@
             <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Attendance History</h3>
             <span style="font-size:12px;color:var(--muted);">Last 30 records</span>
           </div>
-          <div class="att-table-wrap">
+          <div class="att-wrap">
             <table>
               <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Day</th>
-                  <th>Time In</th>
-                  <th>Time Out</th>
-                  <th>Status</th>
-                </tr>
+                <tr><th>Date</th><th>Day</th><th>Time In</th><th>Time Out</th><th>Status</th></tr>
               </thead>
               <tbody id="att-body">
-                <tr><td colspan="5" class="empty-state" style="padding:28px;text-align:center;color:var(--muted);">Loading attendance…</td></tr>
+                <tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted);">Loading attendance…</td></tr>
               </tbody>
             </table>
           </div>
@@ -290,19 +245,148 @@
   </div>
 </div>
 
-<!-- Toast container -->
 <div id="toast-container"></div>
 
 <script src="/js/api.js"></script>
 <script>
-// ── Student sidebar (different from admin sidebar) ─────────────
-function injectStudentSidebar(user) {
-  const el = document.getElementById('sidebar-root');
-  el.innerHTML = `
+// ── Completely self-contained — does NOT call initAuth() ────────
+let currentUser = null;
+
+async function init() {
+  // Step 1: fetch the current user directly
+  let userData;
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include' });
+    if (!res.ok) { window.location.href = '/login'; return; }
+    userData = (await res.json()).user;
+  } catch(e) {
+    window.location.href = '/login';
+    return;
+  }
+
+  // Step 2: role guard
+  if (!userData || userData.role !== 'student') {
+    window.location.href = '/dashboard';
+    return;
+  }
+
+  currentUser = userData;
+
+  // Step 3: inject sidebar FIRST (so DOM elements exist)
+  buildSidebar();
+
+  // Step 4: fill in the page
+  document.getElementById('date-display').textContent =
+    new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+
+  document.getElementById('stu-av').textContent   = initials(currentUser.name);
+  document.getElementById('stu-name').textContent = currentUser.name;
+
+  if (currentUser.studentId) {
+    document.getElementById('stu-id').textContent = 'ID: ' + currentUser.studentId;
+  }
+  if (currentUser.grade) {
+    const g = document.getElementById('stu-grade');
+    g.textContent     = currentUser.grade;
+    g.style.display   = 'inline-block';
+  }
+
+  // Step 5: render QR code
+  const qrEl = document.getElementById('qr-canvas');
+  if (currentUser.qrCode) {
+    document.getElementById('qr-val').textContent = currentUser.qrCode;
+    try {
+      new QRCode(qrEl, {
+        text:         currentUser.qrCode,
+        width:        180,
+        height:       180,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {
+      qrEl.innerHTML = `<div style="padding:20px;color:var(--muted);font-family:var(--mono);font-size:11px;word-break:break-all;">${currentUser.qrCode}</div>`;
+    }
+  } else {
+    qrEl.innerHTML = `
+      <div style="width:180px;height:180px;border:2px dashed rgba(14,138,124,.3);
+        border-radius:10px;display:flex;align-items:center;justify-content:center;
+        color:rgba(255,255,255,.3);font-size:13px;margin:0 auto;padding:14px;text-align:center;line-height:1.5;">
+        No QR code<br>Contact admin
+      </div>`;
+  }
+
+  // Step 6: load attendance
+  loadAttendance();
+}
+
+// ── Attendance ───────────────────────────────────────────────────
+async function loadAttendance() {
+  try {
+    const res = await fetch('/api/attendance/me', { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to fetch attendance');
+    const data = await res.json();
+    const { summary, records } = data;
+
+    document.getElementById('stat-present').textContent = summary.present_days;
+    document.getElementById('stat-absent').textContent  = summary.total_days - summary.present_days;
+    document.getElementById('stat-rate').textContent    = summary.attendance_rate + '%';
+    document.getElementById('rate-chip').textContent    = summary.attendance_rate + '%';
+    document.getElementById('rate-pct').textContent     = summary.attendance_rate + '%';
+    document.getElementById('rate-desc').textContent    =
+      `${summary.present_days} present out of ${summary.total_days} school days`;
+
+    // Colour the rate
+    const r = summary.attendance_rate;
+    const col = r >= 80 ? 'var(--green)' : r >= 60 ? 'var(--amber)' : 'var(--red)';
+    document.getElementById('rate-chip').style.color = col;
+    document.getElementById('rate-pct').style.color  = col;
+
+    // Animate bar
+    setTimeout(() => {
+      const fill = document.getElementById('rate-fill');
+      fill.style.width      = r + '%';
+      fill.style.background = r >= 80
+        ? 'linear-gradient(90deg,#10b981,#34d399)'
+        : r >= 60
+          ? 'linear-gradient(90deg,#f59e0b,#fbbf24)'
+          : 'linear-gradient(90deg,#ef4444,#f87171)';
+    }, 300);
+
+    // Render table
+    const body = document.getElementById('att-body');
+    if (!records || records.length === 0) {
+      body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted);">
+        No attendance records yet. Check in at the campus gate to get started.
+      </td></tr>`;
+      return;
+    }
+
+    body.innerHTML = records.slice(0, 30).map(r => {
+      const d   = new Date(r.date + 'T12:00:00');
+      const day = d.toLocaleDateString('en-US', { weekday:'short' });
+      const dt  = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+      const present = !!r.time_in;
+      return `<tr>
+        <td class="mono">${dt}</td>
+        <td style="color:var(--muted);font-size:12.5px;">${day}</td>
+        <td class="mono">${r.time_in  || '—'}</td>
+        <td class="mono">${r.time_out || '—'}</td>
+        <td><span class="pill ${present ? 'pill-g' : 'pill-r'}">${present ? 'Present' : 'Absent'}</span></td>
+      </tr>`;
+    }).join('');
+
+  } catch(e) {
+    document.getElementById('att-body').innerHTML =
+      `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted);">Could not load attendance records.</td></tr>`;
+  }
+}
+
+// ── Student-specific sidebar ─────────────────────────────────────
+function buildSidebar() {
+  document.getElementById('sidebar-root').innerHTML = `
     <aside class="sidebar">
-      <div class="sb-beta">PAMPER · BETA v0.4</div>
+      <div class="sb-beta">PAMPER · v1.1</div>
       <div class="sb-brand">
-        <div class="sb-mark"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <img src="/images/Logo30x50.png" alt="PAMPER" style="width:34px;height:auto;border-radius:6px;flex-shrink:0;">
         <div><div class="sb-name">PAMPER</div><div class="sb-ver">Student Portal</div></div>
       </div>
       <nav class="sb-nav">
@@ -311,7 +395,7 @@ function injectStudentSidebar(user) {
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           Home
         </a>
-        <a class="nav-a" href="/checkin" target="_blank">
+        <a class="nav-a" href="/checkin">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
           Check In / Out
         </a>
@@ -319,22 +403,17 @@ function injectStudentSidebar(user) {
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
           My Profile
         </a>
-        <div class="sb-label">Attendance</div>
-        <a class="nav-a" href="#att-section" onclick="document.getElementById('att-body').scrollIntoView({behavior:'smooth'});return false;">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
-          My Records
-        </a>
         <div class="sb-label">Account</div>
-        <a class="nav-a" href="#" onclick="logout();return false;">
+        <a class="nav-a" href="#" onclick="event.preventDefault();fetch('/api/auth/logout',{method:'POST',credentials:'include'}).then(()=>window.location.href='/login')">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           Sign Out
         </a>
       </nav>
       <div class="sb-user">
         <div class="user-chip">
-          <div class="u-av">${initials(user.name)}</div>
+          <div class="u-av">${initials(currentUser.name)}</div>
           <div>
-            <div class="u-name">${user.name}</div>
+            <div class="u-name">${currentUser.name}</div>
             <div class="u-role">Student</div>
           </div>
         </div>
@@ -342,327 +421,7 @@ function injectStudentSidebar(user) {
     </aside>`;
 }
 
-// ── Init ────────────────────────────────────────────────────────
-let currentUser = null;
-
-async function init() {
-  // Fetch current user directly — don't use initAuth which has DOM side-effects
-  try {
-    const res = await fetch('/api/auth/me', { credentials: 'include' });
-    if (!res.ok) { window.location.href = '/login'; return; }
-    const data = await res.json();
-    currentUser = data.user;
-  } catch(e) {
-    window.location.href = '/login';
-    return;
-  }
-
-  // Role guard
-  if (!currentUser || currentUser.role !== 'student') {
-    window.location.href = '/dashboard';
-    return;
-  }
-
-  // Inject student sidebar now that we have the user
-  injectStudentSidebar(currentUser);
-
-  // Set date
-  document.getElementById('date-display').textContent =
-    new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
-
-  // Fill profile card
-  document.getElementById('stu-av').textContent    = initials(currentUser.name);
-  document.getElementById('stu-name').textContent  = currentUser.name;
-  document.getElementById('stu-id').textContent    = currentUser.studentId ? `ID: ${currentUser.studentId}` : '';
-  document.getElementById('stu-grade').textContent = currentUser.grade || '';
-
-  // Render QR code
-  if (currentUser.qrCode) {
-    document.getElementById('qr-text').textContent = currentUser.qrCode;
-    try {
-      new QRCode(document.getElementById('qr-canvas'), {
-        text:         currentUser.qrCode,
-        width:        180,
-        height:       180,
-        correctLevel: QRCode.CorrectLevel.M
-      });
-    } catch(e) {
-      document.getElementById('qr-canvas').textContent = currentUser.qrCode;
-    }
-  } else {
-    document.getElementById('qr-canvas').innerHTML =
-      '<div style="width:180px;height:180px;border:2px dashed rgba(14,138,124,.3);border-radius:10px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:13px;margin:0 auto;padding:12px;text-align:center;">No QR code assigned.<br>Contact admin.</div>';
-  }
-
-  // Load everything in parallel
-  loadCampusSettings();
-  loadAttendance();
-  runDebugCheck();
-}
-
-// ── Debug check — shows exactly why check-in might fail ────────
-async function runDebugCheck() {
-  try {
-    const d = await api.get('/api/attendance/debug-scan');
-    const panel = document.getElementById('debug-panel');
-    if (!panel) return;
-
-    if (d.would_succeed) {
-      panel.innerHTML = `<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:9px;padding:10px 14px;font-size:12.5px;color:var(--green);display:flex;align-items:center;gap:8px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        ✓ Check-in system is ready. Press a button above to check in or out.
-      </div>`;
-    } else {
-      const blockerList = d.blockers.map(b => `<li style="margin-bottom:4px;">⚠ ${b}</li>`).join('');
-      panel.innerHTML = `<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:9px;padding:12px 14px;font-size:12.5px;color:#fca5a5;">
-        <strong style="display:block;margin-bottom:6px;">Check-in blocked — reasons:</strong>
-        <ul style="padding-left:16px;">${blockerList}</ul>
-        <div style="margin-top:8px;font-size:11px;opacity:.7;">QR status: ${d.qr_status} | Time: ${d.current_time_jamaica} | Hours: ${d.checkin_start}–${d.checkin_end}</div>
-      </div>`;
-    }
-  } catch(e) {
-    console.warn('Debug check failed:', e.message);
-  }
-}
-
-// ── Load attendance history ─────────────────────────────────────
-async function loadAttendance() {
-  try {
-    const res = await api.get('/api/attendance/me');
-    const { summary, records } = res;
-
-    // Stats
-    document.getElementById('stat-present').textContent = summary.present_days;
-    document.getElementById('stat-absent').textContent  = summary.total_days - summary.present_days;
-    document.getElementById('stat-rate').textContent    = summary.attendance_rate + '%';
-
-    // Rate bar
-    const rate = summary.attendance_rate;
-    document.getElementById('rate-pct').textContent = rate + '%';
-    document.getElementById('rate-desc').textContent =
-      `${summary.present_days} present out of ${summary.total_days} school days`;
-    document.getElementById('rate-chip').textContent = rate + '%';
-
-    // Colour the rate chip
-    const chip = document.getElementById('rate-chip');
-    if      (rate >= 80) { chip.style.background='rgba(16,185,129,.12)'; chip.style.color='var(--green)'; chip.style.borderColor='rgba(16,185,129,.3)'; }
-    else if (rate >= 60) { chip.style.background='rgba(245,158,11,.12)'; chip.style.color='var(--amber)'; chip.style.borderColor='rgba(245,158,11,.3)'; }
-    else                 { chip.style.background='rgba(239,68,68,.12)';  chip.style.color='var(--red)';   chip.style.borderColor='rgba(239,68,68,.3)'; }
-
-    // Animate rate bar after short delay
-    setTimeout(() => {
-      document.getElementById('rate-fill').style.width = rate + '%';
-      // Colour bar based on rate
-      const fill = document.getElementById('rate-fill');
-      if      (rate >= 80) fill.style.background = 'linear-gradient(90deg,#10b981,#34d399)';
-      else if (rate >= 60) fill.style.background = 'linear-gradient(90deg,#f59e0b,#fbbf24)';
-      else                 fill.style.background = 'linear-gradient(90deg,#ef4444,#f87171)';
-    }, 300);
-
-    // Table
-    renderAttendanceTable(records);
-
-  } catch(e) {
-    console.error('Failed to load attendance:', e);
-    document.getElementById('att-body').innerHTML =
-      `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted);">Could not load attendance records.</td></tr>`;
-  }
-}
-
-function renderAttendanceTable(records) {
-  const body = document.getElementById('att-body');
-
-  if (!records || records.length === 0) {
-    body.innerHTML = `
-      <tr><td colspan="5" style="padding:0;">
-        <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          No attendance records yet.<br>Check in at the campus gate to get started.
-        </div>
-      </td></tr>`;
-    return;
-  }
-
-  body.innerHTML = records.slice(0, 30).map(r => {
-    const dateObj  = new Date(r.date + 'T12:00:00');
-    const dayName  = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-    const dateStr  = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const isPresent = !!r.time_in;
-
-    return `
-      <tr>
-        <td class="mono">${dateStr}</td>
-        <td style="color:var(--muted);font-size:12.5px;">${dayName}</td>
-        <td class="mono">${r.time_in  || '—'}</td>
-        <td class="mono">${r.time_out || '—'}</td>
-        <td><span class="pill ${isPresent ? 'pill-g' : 'pill-r'}">${isPresent ? 'Present' : 'Absent'}</span></td>
-      </tr>`;
-  }).join('');
-}
-
-// ── Campus settings + GPS helpers ──────────────────────────────
-let campusSettings = null;
-
-async function loadCampusSettings() {
-  try {
-    campusSettings = await api.get('/api/campus/geofence');
-    updateLocationBadge();
-  } catch(e) {
-    // Can't load settings — allow check-in anyway, server will validate
-    campusSettings = { enabled: false, self_checkin: true };
-  }
-}
-
-function updateLocationBadge() {
-  const badge = document.getElementById('location-badge');
-  if (!badge) return;
-  if (!campusSettings?.enabled) {
-    badge.textContent = '📍 Location check: Off';
-    badge.style.color = 'var(--muted)';
-  } else {
-    badge.textContent = `📍 Must be within ${campusSettings.radius}m of campus`;
-    badge.style.color = 'var(--teal-light)';
-  }
-}
-
-async function getGPSPosition() {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('GPS not supported by your browser.'));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      err => {
-        const msgs = {
-          1: 'Location access denied. Please allow location permission in your browser settings and try again.',
-          2: 'Location unavailable. Make sure GPS is turned on.',
-          3: 'Location request timed out. Please try again.'
-        };
-        reject(new Error(msgs[err.code] || 'Could not get your location.'));
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
-    );
-  });
-}
-
-// ── Main check-in / check-out function ─────────────────────────
-async function doScan(type) {
-  // Safety check — should never happen but catches any timing issues
-  if (!currentUser) {
-    toast('Not signed in', 'Please refresh the page and try again', 'err');
-    return;
-  }
-
-  const btnIn  = document.getElementById('btn-in');
-  const btnOut = document.getElementById('btn-out');
-  btnIn.disabled  = true;
-  btnOut.disabled = true;
-
-  const activeBtn  = type === 'in' ? btnIn : btnOut;
-  const origHTML   = activeBtn.innerHTML;
-
-  try {
-    let latitude  = null;
-    let longitude = null;
-
-    // Get GPS if geofence is enabled or if settings not loaded yet
-    const needsGPS = !campusSettings || campusSettings.enabled;
-
-    if (needsGPS) {
-      activeBtn.innerHTML = `<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".25"/><path d="M21 12a9 9 0 00-9-9"/></svg> Getting location…`;
-
-      try {
-        const pos = await getGPSPosition();
-        latitude  = pos.latitude;
-        longitude = pos.longitude;
-      } catch(gpsErr) {
-        // If geofence is definitely disabled, proceed without GPS
-        if (campusSettings && !campusSettings.enabled) {
-          latitude  = null;
-          longitude = null;
-        } else {
-          showScanResult('err', 'Location Needed', gpsErr.message);
-          toast('Location required', gpsErr.message, 'err');
-          return;
-        }
-      }
-    }
-
-    activeBtn.innerHTML = `<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".25"/><path d="M21 12a9 9 0 00-9-9"/></svg> ${type === 'in' ? 'Checking in…' : 'Checking out…'}`;
-
-    const body = { scan_type: type };
-    if (latitude  != null) body.latitude  = latitude;
-    if (longitude != null) body.longitude = longitude;
-
-    const res = await api.post('/api/attendance/self-scan', body);
-
-    const timeStr = formatTime(res.scan_time);
-    showScanResult(
-      'ok',
-      type === 'in' ? `Checked In at ${timeStr}` : `Checked Out at ${timeStr}`,
-      `Recorded successfully. Have a great ${type === 'in' ? 'day' : 'evening'}!`
-    );
-    toast(type === 'in' ? 'Checked In ✓' : 'Checked Out ✓', `Recorded at ${timeStr}`, 'ok');
-    loadAttendance();
-
-  } catch(e) {
-    const msg = e.message || '';
-
-    if (msg.includes('OUT_OF_BOUNDS') || msg.includes('metres from campus')) {
-      showScanResult('err', 'Not on Campus', msg);
-      toast('Outside campus boundary', msg, 'err');
-    } else if (msg.includes('OUTSIDE_HOURS')) {
-      showScanResult('err', 'Outside Check-in Hours', msg.replace('OUTSIDE_HOURS: ', ''));
-      toast('Outside hours', 'Check-in not available right now', 'warn');
-    } else if (msg.includes('LOCATION_REQUIRED')) {
-      showScanResult('err', 'Location Required', 'Please allow location access in your browser and try again.');
-      toast('Location required', 'Enable GPS and try again', 'err');
-    } else if (msg.includes('disabled')) {
-      showScanResult('err', 'Self Check-in Disabled', 'Please see security personnel to record your attendance.');
-      toast('Disabled', msg, 'warn');
-    } else if (msg.includes('DUPLICATE')) {
-      showScanResult('err', 'Already Recorded', `You already checked ${type === 'in' ? 'in' : 'out'} recently. Try again in 5 minutes.`);
-      toast('Already recorded', 'Duplicate scan within 5 minutes', 'warn');
-    } else if (msg.includes('BLACKLISTED')) {
-      showScanResult('err', 'Account Suspended', 'Contact administration immediately.');
-      toast('Account suspended', 'Contact administration', 'err');
-    } else if (msg.includes('QR code is')) {
-      showScanResult('err', 'QR Code Issue', msg);
-      toast('QR Code inactive', 'Contact admin to reactivate', 'warn');
-    } else {
-      showScanResult('err', 'Check-in Failed', msg || 'Something went wrong. Please try again.');
-      toast('Failed', msg || 'Unknown error', 'err');
-    }
-  } finally {
-    setTimeout(() => {
-      btnIn.disabled  = false;
-      btnOut.disabled = false;
-      activeBtn.innerHTML = origHTML;
-    }, 2500);
-  }
-}
-
-function showScanResult(type, title, sub) {
-  const el    = document.getElementById('scan-result');
-  const ico   = document.getElementById('scan-ico');
-  const tEl   = document.getElementById('scan-result-title');
-  const subEl = document.getElementById('scan-result-sub');
-
-  el.className = `scan-result show ${type === 'ok' ? 'ok' : 'err'}`;
-  tEl.textContent   = title;
-  subEl.textContent = sub;
-
-  if (type === 'ok') {
-    ico.innerHTML = `<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>`;
-  } else {
-    ico.innerHTML = `<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>`;
-  }
-
-  // Auto-hide after 6 seconds
-  setTimeout(() => el.classList.remove('show'), 6000);
-}
-
+// ── Boot ─────────────────────────────────────────────────────────
 init();
 </script>
 </body>

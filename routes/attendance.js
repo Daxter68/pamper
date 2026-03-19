@@ -53,7 +53,7 @@ async function getCampusSettings() {
 }
 
 // ── Shared scan logic ─────────────────────────────────────────────
-// Returns { log } on success, or { error, status } on failure
+// Returns { log, isLate, minutesLate } on success, or { error, status } on failure
 async function recordScan(studentId, scannedBy, scanType, location) {
   // Duplicate check (5 min window)
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -67,10 +67,35 @@ async function recordScan(studentId, scannedBy, scanType, location) {
 
   if (recent && recent.length > 0) {
     return {
-      error:  'DUPLICATE',
-      status: 409,
+      error:   'DUPLICATE',
+      status:  409,
       message: `Already recorded ${scanType === 'in' ? 'check-in' : 'check-out'} in the last 5 minutes`
     };
+  }
+
+  // ── Late detection ──────────────────────────────────────────
+  let isLate      = false;
+  let minutesLate = 0;
+
+  if (scanType === 'in') {
+    try {
+      const { data: settings } = await supabase
+        .from('campus_settings')
+        .select('value')
+        .eq('key', 'late_cutoff_time')
+        .single();
+
+      if (settings?.value) {
+        const [lh, lm] = settings.value.split(':').map(Number);
+        const nowJ     = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Jamaica' }));
+        const nowMins  = nowJ.getHours() * 60 + nowJ.getMinutes();
+        const cutMins  = lh * 60 + lm;
+        if (nowMins > cutMins) {
+          isLate      = true;
+          minutesLate = nowMins - cutMins;
+        }
+      }
+    } catch(e) { /* ignore — proceed without late check */ }
   }
 
   const { data: log, error: logErr } = await supabase
@@ -80,13 +105,14 @@ async function recordScan(studentId, scannedBy, scanType, location) {
       scanned_by: scannedBy,
       scan_type:  scanType,
       location,
-      date: new Date().toISOString().split('T')[0]
+      notes:      isLate ? `Late by ${minutesLate} minutes` : null,
+      date:       new Date().toISOString().split('T')[0]
     })
     .select()
     .single();
 
   if (logErr) return { error: logErr.message, status: 500 };
-  return { log };
+  return { log, isLate, minutesLate };
 }
 
 // POST /api/attendance/scan – staff/admin scan (no geofence required)
@@ -126,10 +152,20 @@ router.post('/scan', requireRole('admin', 'security'), async (req, res) => {
   const result = await recordScan(student.id, req.user.id, scan_type, location);
   if (result.error) return res.status(result.status).json({ error: result.error, message: result.message });
 
+  // Send late alert if applicable
+  if (result.isLate) {
+    const { sendLateAlert } = require('../config/mailer');
+    const scanTimeStr = new Date(result.log.scan_time)
+      .toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    sendLateAlert(student, scanTimeStr, result.minutesLate).catch(() => {});
+  }
+
   res.json({
     success: true, scan_type,
     student: { id: student.id, name: student.full_name, studentId: student.student_id, grade: student.grade },
-    scan_time: result.log.scan_time
+    scan_time: result.log.scan_time,
+    is_late:      result.isLate,
+    minutes_late: result.minutesLate
   });
 });
 

@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PAMPER – Sign In</title>
+<title>PAMPER Sign In</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="/images/Logo30x50.png">
+
 <style>
 :root{
   --teal:#0e8a7c;--teal-dark:#0a6b60;--teal-deeper:#085047;
@@ -92,8 +94,7 @@ body{font-family:var(--font);background:var(--navy);min-height:100vh;display:fle
 <div class="brand-panel">
   <div>
     <div class="brand-mark-row">
-      <div class="brand-qr"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-      <span class="brand-name">PAMPER</span>
+      <img src="/images/Logo30x50.png" alt="PAMPER" style="width:44px;height:auto;">      <span class="brand-name">PAMPER</span>
     </div>
     <div class="brand-headline">
       <h2>Campus<br><em>Attendance</em><br>Secured.</h2>
@@ -206,6 +207,8 @@ body{font-family:var(--font);background:var(--navy);min-height:100vh;display:fle
       // Redirect based on role
       if (data.user.role === 'student') {
         window.location.href = '/student-home';
+      } else if (data.user.role === 'teacher') {
+        window.location.href = '/teacher';
       } else {
         window.location.href = '/dashboard';
       }

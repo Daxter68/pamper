@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PAMPER ID Card Generator</title>
+<link rel="stylesheet" href="/css/app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="icon" type="image/png" href="/images/Logo30x50.png">
+
+<style>
+/* ── Layout ── */
+.idc-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+
+/* ── Card design ── */
+.id-card {
+  width: 320px; height: 200px;
+  border-radius: 14px; overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  position: relative; font-family: var(--font);
+  flex-shrink: 0; user-select: none;
+}
+.card-header {
+  height: 52px; display: flex; align-items: center;
+  padding: 0 16px; gap: 11px;
+  background: rgba(0,0,0,.22);
+}
+.card-logo {
+  width: 32px; height: 32px; border-radius: 7px;
+  background: rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; flex-shrink: 0;
+}
+.card-logo img { width: 100%; height: 100%; object-fit: cover; }
+.card-logo svg { width: 16px; height: 16px; stroke: #fff; fill: none; }
+.card-school { font-size: 12px; font-weight: 800; color: #fff; letter-spacing: .5px; line-height: 1.2; }
+.card-tagline { font-size: 9.5px; color: rgba(255,255,255,.55); margin-top: 1px; }
+.card-body { padding: 12px 16px; display: flex; gap: 14px; align-items: flex-start; }
+.card-qr { flex-shrink: 0; background: #fff; border-radius: 7px; padding: 5px; }
+.card-info { flex: 1; min-width: 0; }
+.card-name { font-size: 16px; font-weight: 800; color: #fff; line-height: 1.25; margin-bottom: 2px; word-break: break-word; }
+.card-role { font-size: 10px; color: rgba(255,255,255,.55); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.card-detail { display: flex; flex-direction: column; gap: 2px; }
+.card-detail-row { display: flex; gap: 6px; align-items: center; font-size: 10.5px; color: rgba(255,255,255,.65); }
+.card-detail-label { font-size: 9px; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: .5px; width: 28px; flex-shrink: 0; }
+.card-detail-val { font-family: var(--mono); }
+.card-footer {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 5px 16px; display: flex; justify-content: space-between; align-items: center;
+  background: rgba(0,0,0,.18);
+}
+.card-footer-txt { font-size: 8.5px; color: rgba(255,255,255,.35); font-family: var(--mono); letter-spacing: .5px; }
+.card-barcode { display: flex; gap: 1.5px; align-items: flex-end; }
+.card-barcode span { width: 2px; border-radius: 1px; background: rgba(255,255,255,.3); }
+
+/* ── Colour swatches ── */
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch {
+  width: 30px; height: 30px; border-radius: 7px;
+  border: 2.5px solid transparent; cursor: pointer;
+  transition: all .15s; position: relative;
+}
+.swatch.active { border-color: #fff; transform: scale(1.12); box-shadow: 0 3px 12px rgba(0,0,0,.3); }
+.swatch.active::after {
+  content: '✓'; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: #fff;
+}
+
+/* ── Student list ── */
+.stu-list { max-height: 340px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--r); }
+.stu-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border-2);
+  cursor: pointer; transition: background .12s;
+}
+.stu-row:last-child { border-bottom: none; }
+.stu-row:hover { background: var(--teal-pale); }
+.stu-row input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--teal); flex-shrink: 0; }
+.stu-av {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.stu-name { font-size: 13.5px; font-weight: 600; }
+.stu-meta { font-size: 11.5px; color: var(--muted); }
+
+/* ── Preview grid ── */
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 320px);
+  gap: 16px; padding: 4px;
+}
+.preview-card-wrap { position: relative; }
+.preview-card-wrap .remove-btn {
+  position: absolute; top: -6px; right: -6px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--red); border: none; color: #fff;
+  font-size: 13px; font-weight: 800; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+  z-index: 10;
+}
+.preview-card-wrap:hover .remove-btn { display: flex; }
+
+/* ── Logo upload ── */
+.logo-upload-area {
+  border: 2px dashed var(--border); border-radius: var(--r);
+  padding: 14px; text-align: center; cursor: pointer;
+  transition: border-color .15s; margin-top: 8px;
+}
+.logo-upload-area:hover { border-color: var(--teal); }
+.logo-upload-area input { display: none; }
+
+/* ── Print styles ── */
+@media screen { #print-area { display: none; } }
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { position: fixed; top: 0; left: 0; right: 0; background: white; }
+  .print-page { padding: 15mm; }
+  .print-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 85.6mm);
+    gap: 5mm;
+  }
+  .print-card-item { page-break-inside: avoid; }
+  .id-card { width: 85.6mm !important; height: 53.98mm !important; border-radius: 3mm !important; }
+  .id-card * { -webkit-print-color-adjust: exact !important; }
+}
+</style>
+</head>
+<body>
+<div id="sidebar-root"></div>
+<div id="print-area"></div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>ID Card Generator</h2>
+    <div class="topbar-r">
+      <span class="chip chip-teal chip-mono">ADMIN</span>
+      <button class="btn btn-ghost btn-sm" onclick="selectAll(false)">Clear All</button>
+      <button class="btn btn-outline btn-sm" onclick="selectAll(true)">Select All</button>
+      <button class="btn btn-primary" id="print-btn" onclick="printCards()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print Cards (<span id="sel-count">0</span>)
+      </button>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="idc-layout">
+
+      <!-- ── Left: controls ── -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Card design -->
+        <div class="panel">
+          <div class="ph"><h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>Card Design</h3></div>
+          <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+
+            <div class="field">
+              <label>School / Institution Name</label>
+              <input type="text" id="school-name" value="Moneague College" oninput="updateAllPreviews()">
+            </div>
+            <div class="field">
+              <label>Tagline</label>
+              <input type="text" id="tagline" value="Excellence in Education" oninput="updateAllPreviews()">
+            </div>
+            <div class="field">
+              <label>Academic Year</label>
+              <input type="text" id="acad-year" value="2025 – 2026" oninput="updateAllPreviews()">
+            </div>
+
+            <div class="field">
+              <label>Card Colour</label>
+              <div class="swatches" id="swatches" style="margin-top:8px;">
+                <div class="swatch active" data-bg="linear-gradient(135deg,#085047 0%,#0e8a7c 100%)" style="background:linear-gradient(135deg,#085047,#0e8a7c)" onclick="setColor(this)"></div>
+                <div class="swatch" data-bg="linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%)" style="background:linear-gradient(135deg,#1e3a8a,#2563eb)" onclick="setColor(this)"></div>
+                <div class="swatch" data-bg="linear-gradient(135deg,#7c2d12 0%,#dc2626 100%)" style="background:linear-gradient(135deg,#7c2d12,#dc2626)" onclick="setColor(this)"></div>
+                <div class="swatch" data-bg="linear-gradient(135deg,#4c1d95 0%,#7c3aed 100%)" style="background:linear-gradient(135deg,#4c1d95,#7c3aed)" onclick="setColor(this)"></div>
+                <div class="swatch" data-bg="linear-gradient(135deg,#1f2937 0%,#4b5563 100%)" style="background:linear-gradient(135deg,#1f2937,#4b5563)" onclick="setColor(this)"></div>
+                <div class="swatch" data-bg="linear-gradient(135deg,#064e3b 0%,#047857 100%)" style="background:linear-gradient(135deg,#064e3b,#047857)" onclick="setColor(this)"></div>
+                <div class="swatch" data-bg="linear-gradient(135deg,#7c1d3f 0%,#be185d 100%)" style="background:linear-gradient(135deg,#7c1d3f,#be185d)" onclick="setColor(this)"></div>
+                <div class="swatch" data-bg="linear-gradient(135deg,#78350f 0%,#d97706 100%)" style="background:linear-gradient(135deg,#78350f,#d97706)" onclick="setColor(this)"></div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>School Logo <small style="color:var(--muted);">(optional, PNG/JPG)</small></label>
+              <div class="logo-upload-area" onclick="document.getElementById('logo-upload').click()">
+                <input type="file" id="logo-upload" accept="image/*" onchange="loadLogo(this)">
+                <div id="logo-preview" style="display:none;margin-bottom:8px;"><img id="logo-img" style="max-height:36px;max-width:100px;border-radius:4px;"></div>
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;stroke:var(--muted);margin:0 auto;display:block;margin-bottom:6px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <p style="font-size:12px;color:var(--muted);" id="logo-label">Click to upload logo</p>
+              </div>
+            </div>
+
+            <!-- Live preview -->
+            <div>
+              <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:10px;">Live Preview</label>
+              <div id="preview-wrap" style="display:flex;justify-content:center;">
+                <div class="id-card" id="preview-card" style="background:linear-gradient(135deg,#085047,#0e8a7c);">
+                  <div class="card-header">
+                    <div class="card-logo" id="prev-logo-wrap">
+                      <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                    </div>
+                    <div>
+                      <div class="card-school" id="prev-school">Moneague College</div>
+                      <div class="card-tagline" id="prev-tagline">Excellence in Education</div>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="card-qr"><div id="prev-qr-el" style="width:72px;height:72px;"></div></div>
+                    <div class="card-info">
+                      <div class="card-name" id="prev-name">Student Name</div>
+                      <div class="card-role">Student</div>
+                      <div class="card-detail">
+                        <div class="card-detail-row"><span class="card-detail-label">ID</span><span class="card-detail-val" id="prev-id">ST001</span></div>
+                        <div class="card-detail-row"><span class="card-detail-label">GRD</span><span class="card-detail-val" id="prev-grade">Grade 9</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-footer">
+                    <span class="card-footer-txt" id="prev-year">2025 – 2026</span>
+                    <span class="card-footer-txt">STUDENT ID CARD</span>
+                    <div class="card-barcode" id="prev-barcode"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Student selector -->
+        <div class="panel">
+          <div class="ph">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Select Students</h3>
+            <span id="stu-count" style="font-size:12px;color:var(--muted);">Loading…</span>
+          </div>
+          <div style="padding:10px 16px 12px;">
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <div style="position:relative;flex:1;">
+                <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--muted);" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="search" id="stu-search" placeholder="Search…" oninput="filterStudents()"
+                  style="width:100%;padding:8px 10px 8px 32px;border:1.5px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:13px;outline:none;">
+              </div>
+              <select id="grade-filter" onchange="filterStudents()" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:13px;outline:none;">
+                <option value="">All Grades</option>
+                <option>Grade 5</option><option>Grade 6</option><option>Grade 7</option>
+                <option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option>
+              </select>
+            </div>
+            <div class="stu-list" id="stu-list">
+              <div style="text-align:center;padding:20px;color:var(--muted);">Loading students…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Right: card previews ── -->
+      <div class="panel">
+        <div class="ph">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>Generated Cards</h3>
+          <span id="card-count" style="font-size:12px;color:var(--muted);">0 cards</span>
+        </div>
+        <div style="padding:16px;">
+          <div id="preview-grid" class="preview-grid">
+            <div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--muted);">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:40px;height:40px;stroke:var(--border);margin:0 auto 12px;display:block;"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
+              Select students on the left to preview their ID cards here
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+injectSidebar('idcards');
+initAuth(['admin']);
+
+let allStudents = [], filteredStudents = [];
+let selectedIds = new Set();
+let cardBg      = 'linear-gradient(135deg,#085047 0%,#0e8a7c 100%)';
+let logoDataUrl = null;
+let previewQRMade = false;
+
+// ── Logo upload ─────────────────────────────────────────────────
+function loadLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    logoDataUrl = e.target.result;
+    document.getElementById('logo-img').src = logoDataUrl;
+    document.getElementById('logo-preview').style.display = '';
+    document.getElementById('logo-label').textContent = file.name;
+    updateLogoInPreview(document.getElementById('prev-logo-wrap'));
+    updateAllPreviews();
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateLogoInPreview(logoWrap) {
+  if (!logoWrap) return;
+  if (logoDataUrl) {
+    logoWrap.innerHTML = `<img src="${logoDataUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+  } else {
+    logoWrap.innerHTML = `<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>`;
+  }
+}
+
+// ── Card colour ─────────────────────────────────────────────────
+function setColor(el) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  cardBg = el.dataset.bg;
+  document.getElementById('preview-card').style.background = cardBg;
+  updateAllPreviews();
+}
+
+// ── Preview updates ─────────────────────────────────────────────
+function updateAllPreviews() {
+  const school = document.getElementById('school-name').value || 'School';
+  const tag    = document.getElementById('tagline').value || '';
+  const year   = document.getElementById('acad-year').value || '';
+
+  // Update static preview
+  document.getElementById('prev-school').textContent  = school.toUpperCase();
+  document.getElementById('prev-tagline').textContent = tag;
+  document.getElementById('prev-year').textContent    = year;
+  updateLogoInPreview(document.getElementById('prev-logo-wrap'));
+
+  // Update all generated card previews
+  document.querySelectorAll('.id-card.generated').forEach(card => {
+    card.style.background = cardBg;
+    const s = card.querySelector('.card-school');
+    const t = card.querySelector('.card-tagline');
+    const y = card.querySelector('.card-footer-txt');
+    const l = card.querySelector('.card-logo');
+    if (s) s.textContent = school.toUpperCase();
+    if (t) t.textContent = tag;
+    if (y) y.textContent = year;
+    if (l) updateLogoInPreview(l);
+  });
+}
+
+// Make preview QR
+function makePreviewQR() {
+  if (previewQRMade) return;
+  const el = document.getElementById('prev-qr-el');
+  if (!el) return;
+  el.innerHTML = '';
+  try {
+    new QRCode(el, { text: 'PAMPER-PREVIEW', width: 72, height: 72, correctLevel: QRCode.CorrectLevel.M });
+    previewQRMade = true;
+  } catch(e) {}
+}
+
+// Generate barcode decoration
+function makeBarcodeHTML() {
+  const heights = [14,10,16,10,14,12,16,10,12,14,10,16];
+  return heights.map(h => `<span style="height:${h}px;"></span>`).join('');
+}
+
+// ── Load students ───────────────────────────────────────────────
+async function loadStudents() {
+  try {
+    const res = await api.get('/api/users?role=student&limit=500');
+    allStudents = res.data || [];
+    filteredStudents = [...allStudents];
+    document.getElementById('stu-count').textContent = `${allStudents.length} students`;
+    renderList();
+    makePreviewQR();
+  } catch(e) {
+    toast('Failed to load students', e.message, 'err');
+  }
+}
+
+function filterStudents() {
+  const grade  = document.getElementById('grade-filter').value;
+  const search = document.getElementById('stu-search').value.toLowerCase();
+  filteredStudents = allStudents.filter(s =>
+    (!grade  || s.grade === grade) &&
+    (!search || s.full_name.toLowerCase().includes(search) || (s.student_id||'').toLowerCase().includes(search))
+  );
+  renderList();
+}
+
+function renderList() {
+  const list = document.getElementById('stu-list');
+  if (!filteredStudents.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No students found</div>';
+    return;
+  }
+  list.innerHTML = filteredStudents.map(s => `
+    <div class="stu-row" onclick="toggleStudent('${s.id}')">
+      <input type="checkbox" ${selectedIds.has(s.id)?'checked':''} onclick="event.stopPropagation();toggleStudent('${s.id}')">
+      <div class="stu-av">${initials(s.full_name)}</div>
+      <div>
+        <div class="stu-name">${s.full_name}</div>
+        <div class="stu-meta">${s.student_id||'No ID'} · ${s.grade||'No grade'}</div>
+      </div>
+      ${s.qr_code ? '' : '<span style="font-size:10px;color:var(--amber);margin-left:auto;">No QR</span>'}
+    </div>`).join('');
+}
+
+function toggleStudent(id) {
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
+    // Remove card from preview
+    const existing = document.getElementById(`pcard-${id}`);
+    if (existing) existing.remove();
+  } else {
+    selectedIds.add(id);
+    // Add card to preview
+    const student = allStudents.find(s => s.id === id);
+    if (student) addCardToPreview(student);
+  }
+  updateCounts();
+  renderList();
+  checkEmpty();
+}
+
+function selectAll(val) {
+  if (val) {
+    // Add all filtered students
+    filteredStudents.forEach(s => {
+      if (!selectedIds.has(s.id)) {
+        selectedIds.add(s.id);
+        addCardToPreview(s);
+      }
+    });
+  } else {
+    selectedIds.clear();
+    document.getElementById('preview-grid').innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--muted);">
+        Select students on the left to preview their ID cards here
+      </div>`;
+  }
+  updateCounts();
+  renderList();
+  checkEmpty();
+}
+
+function addCardToPreview(student) {
+  const grid = document.getElementById('preview-grid');
+  // Remove empty state
+  const empty = grid.querySelector('[style*="grid-column:1/-1"]');
+  if (empty) empty.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'preview-card-wrap';
+  wrap.id = `pcard-${student.id}`;
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-btn';
+  removeBtn.textContent = '×';
+  removeBtn.onclick = () => toggleStudent(student.id);
+
+  const cardEl = document.createElement('div');
+  cardEl.innerHTML = buildCardHTML(student);
+  const card = cardEl.firstElementChild;
+
+  wrap.appendChild(removeBtn);
+  wrap.appendChild(card);
+  grid.appendChild(wrap);
+
+  // Render QR code
+  if (student.qr_code) {
+    const qrEl = card.querySelector(`#qr-${student.id}`);
+    if (qrEl) {
+      try {
+        new QRCode(qrEl, { text: student.qr_code, width: 72, height: 72, correctLevel: QRCode.CorrectLevel.M });
+      } catch(e) {}
+    }
+  }
+}
+
+function buildCardHTML(student, forPrint = false) {
+  const school = document.getElementById('school-name').value || 'School';
+  const tag    = document.getElementById('tagline').value || '';
+  const year   = document.getElementById('acad-year').value || '';
+  const size   = forPrint ? '' : '';
+  const logo   = logoDataUrl
+    ? `<img src="${logoDataUrl}" style="width:100%;height:100%;object-fit:cover;">`
+    : `<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>`;
+  const qrPlaceholder = student.qr_code
+    ? `<div id="qr-${student.id}" style="width:72px;height:72px;"></div>`
+    : `<div style="width:72px;height:72px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#999;background:#f0f0f0;border-radius:4px;">No QR</div>`;
+
+  return `
+    <div class="id-card generated" style="background:${cardBg};">
+      <div class="card-header">
+        <div class="card-logo">${logo}</div>
+        <div>
+          <div class="card-school">${school.toUpperCase()}</div>
+          <div class="card-tagline">${tag}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-qr">${qrPlaceholder}</div>
+        <div class="card-info">
+          <div class="card-name">${student.full_name}</div>
+          <div class="card-role">Student</div>
+          <div class="card-detail">
+            <div class="card-detail-row"><span class="card-detail-label">ID</span><span class="card-detail-val">${student.student_id||'—'}</span></div>
+            <div class="card-detail-row"><span class="card-detail-label">GRD</span><span class="card-detail-val">${student.grade||'—'}</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-footer-txt">${year}</span>
+        <span class="card-footer-txt">STUDENT ID CARD</span>
+        <div class="card-barcode">${makeBarcodeHTML()}</div>
+      </div>
+    </div>`;
+}
+
+function updateCounts() {
+  document.getElementById('sel-count').textContent = selectedIds.size;
+  document.getElementById('card-count').textContent = `${selectedIds.size} card${selectedIds.size !== 1 ? 's' : ''}`;
+}
+
+function checkEmpty() {
+  const grid = document.getElementById('preview-grid');
+  if (selectedIds.size === 0 && !grid.querySelector('[style*="grid-column:1/-1"]')) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--muted);">
+        Select students on the left to preview their ID cards here
+      </div>`;
+  }
+}
+
+// ── Print ───────────────────────────────────────────────────────
+async function printCards() {
+  const selected = allStudents.filter(s => selectedIds.has(s.id));
+  if (!selected.length) { toast('No students selected', 'Select at least one student first', 'warn'); return; }
+
+  const btn = document.getElementById('print-btn');
+  setLoading(btn, true);
+
+  const school = document.getElementById('school-name').value || 'School';
+  const year   = document.getElementById('acad-year').value || '';
+
+  const printArea = document.getElementById('print-area');
+  printArea.innerHTML = `
+    <div class="print-page">
+      <div style="margin-bottom:8mm;font-family:Arial,sans-serif;">
+        <h2 style="font-size:14pt;margin:0;">${school} — Student ID Cards</h2>
+        <p style="font-size:9pt;color:#666;margin:2px 0 0;">${year} · ${selected.length} card${selected.length>1?'s':''}</p>
+      </div>
+      <div class="print-grid" id="print-grid">
+        ${selected.map(s => `<div class="print-card-item">${buildCardHTML(s, true)}</div>`).join('')}
+      </div>
+    </div>`;
+
+  // Render QR codes in print area and wait
+  const qrPromises = selected.map(s => new Promise(resolve => {
+    if (!s.qr_code) { resolve(); return; }
+    const el = printArea.querySelector(`#qr-${s.id}`);
+    if (!el) { resolve(); return; }
+    el.innerHTML = '';
+    try {
+      new QRCode(el, { text: s.qr_code, width: 72, height: 72, correctLevel: QRCode.CorrectLevel.M });
+      setTimeout(resolve, 200); // give QRCode time to render canvas
+    } catch(e) { resolve(); }
+  }));
+
+  await Promise.all(qrPromises);
+
+  setLoading(btn, false);
+  toast('Opening print dialog…', `${selected.length} card${selected.length>1?'s':''}`, 'ok');
+
+  setTimeout(() => window.print(), 500);
+}
+
+loadStudents();
+</script>
+</body>
+</html>

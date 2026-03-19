@@ -144,12 +144,14 @@ function setLoading(btn, loading) {
 // Shared sidebar HTML (injected by each page)
 function getSidebarHTML(activePage) {
   const links = [
-    { href: '/dashboard',  icon: `<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>`, label: 'Dashboard',   page:'dashboard',  group:'Main' },
-    { href: '/scanner',    icon: `<path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/>`, label: 'Scan Attendance', page:'scanner', group:'Main' },
-    { href: '/students',   icon: `<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>`, label: 'Students', page:'students', group:'Main' },
-    { href: '/attendance', icon: `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>`, label: 'Records', page:'attendance', group:'Records' },
-    { href: '/reports',    icon: `<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>`, label: 'Reports', page:'reports', group:'Records' },
-    { href: '/geofence',   icon: `<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>`, label: 'Campus Geofence', page:'geofence', group:'Settings' },
+    { href: '/dashboard',  icon: `<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>`, label: 'Dashboard',      page:'dashboard',  group:'Main' },
+    { href: '/scanner',    icon: `<path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/>`, label: 'Scan Attendance', page:'scanner',    group:'Main' },
+    { href: '/students',   icon: `<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>`, label: 'Users',           page:'students',   group:'Main' },
+    { href: '/attendance', icon: `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>`, label: 'Records',         page:'attendance', group:'Records' },
+    { href: '/reports',    icon: `<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>`, label: 'Reports',         page:'reports',    group:'Records' },
+    { href: '/idcards',    icon: `<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/>`, label: 'ID Cards',         page:'idcards',    group:'Tools' },
+    { href: '/face-enrol', icon: `<circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/><polyline points="16 11 18 13 22 9"/>`, label: 'Face Enrolment',   page:'face-enrol', group:'Tools' },
+    { href: '/geofence',   icon: `<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>`, label: 'Campus Geofence',  page:'geofence',   group:'Settings' },
   ];
 
   let nav = '';
@@ -177,9 +179,9 @@ function getSidebarHTML(activePage) {
 
   return `
     <aside class="sidebar">
-      <div class="sb-beta">PAMPER · BETA v0.4</div>
+      <div class="sb-beta">PAMPER · v1.1</div>
       <div class="sb-brand">
-        <div class="sb-mark"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <img src="/images/Logo30x50.png" alt="PAMPER" style="width:34px;height:auto;border-radius:6px;flex-shrink:0;">
         <div><div class="sb-name">PAMPER</div><div class="sb-ver">Attendance System</div></div>
       </div>
       <nav class="sb-nav">${nav}</nav>

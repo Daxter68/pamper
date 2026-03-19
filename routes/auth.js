@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
   if (!emailRegex.test(email))
     return res.status(400).json({ error: 'Please enter a valid email address' });
 
-  if (!['admin', 'security', 'student'].includes(role))
+  if (!['admin', 'security', 'student', 'teacher'].includes(role))
     return res.status(400).json({ error: 'Invalid role selected' });
 
   if (role === 'student' && !student_id)

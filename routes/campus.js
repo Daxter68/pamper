@@ -105,4 +105,32 @@ router.patch('/settings', requireRole('admin'), async (req, res) => {
   res.json({ success: true, updated: Object.keys(updates) });
 });
 
+// POST /api/campus/test-email – send a test email
+router.post('/test-email', requireRole('admin'), async (req, res) => {
+  const { to } = req.body;
+  if (!to) return res.status(400).json({ error: 'Recipient email required' });
+
+  const { sendMail } = require('../config/mailer');
+  const sent = await sendMail({
+    to,
+    subject: 'PAMPER Test Email',
+    html: `<div style="font-family:Arial,sans-serif;padding:20px;"><h2 style="color:#0e8a7c;">PAMPER Email Test</h2><p>Your email configuration is working correctly.</p><p style="color:#666;font-size:13px;">Sent from PAMPER Attendance System</p></div>`,
+    type: 'test'
+  });
+
+  if (sent) res.json({ success: true, message: `Test email sent to ${to}` });
+  else res.status(500).json({ error: 'Failed to send email. Check your SMTP settings.' });
+});
+
+// GET /api/campus/notification-log
+router.get('/notification-log', requireRole('admin'), async (req, res) => {
+  const { data, error } = await supabase
+    .from('notification_log')
+    .select('*')
+    .order('sent_at', { ascending: false })
+    .limit(50);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
 module.exports = router;

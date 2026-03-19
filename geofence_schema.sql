@@ -1,5 +1,6 @@
 -- ═══════════════════════════════════════════════════════════
 --  PAMPER – Campus Geofence Settings Table
+--  Run this in Supabase SQL Editor → New Query
 -- ═══════════════════════════════════════════════════════════
 
 CREATE TABLE IF NOT EXISTS campus_settings (
