@@ -2,126 +2,243 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>PAMPER – Students</title>
+<title>PAMPER – User Management</title>
 <link rel="stylesheet" href="/css/app.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
-.iw-search{position:relative;flex:1;min-width:200px;max-width:320px;}
-.iw-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);pointer-events:none;}
-.iw-search input{width:100%;padding:9px 12px 9px 36px;border:1.5px solid var(--border);border-radius:var(--r);background:var(--surface);font-family:var(--font);font-size:13.5px;color:var(--text);outline:none;}
-.iw-search input:focus{border-color:var(--teal);}
-.iw-search input::placeholder{color:var(--muted);}
-select.fsel{padding:9px 13px;border:1.5px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:13.5px;color:var(--text);background:var(--surface);outline:none;}
-select.fsel:focus{border-color:var(--teal);}
-.stu-cell{display:flex;align-items:center;gap:10px;}
-.stu-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dark));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+.role-tabs{display:flex;gap:0;border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px;}
+.rtab{flex:1;padding:10px 8px;border:none;background:var(--surface-2);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);border-right:1px solid var(--border);}
+.rtab:last-child{border-right:none;}
+.rtab svg{width:14px;height:14px;stroke:currentColor;flex-shrink:0;}
+.rtab.on{background:var(--teal);color:#fff;}
+.cnt{border-radius:20px;padding:1px 7px;font-size:10.5px;font-family:var(--mono);background:var(--teal-glow);color:var(--teal);}
+.rtab.on .cnt{background:rgba(255,255,255,.25);color:#fff;}
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.sw{position:relative;flex:1;min-width:180px;max-width:300px;}
+.sw svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);pointer-events:none;}
+.sw input{width:100%;padding:9px 12px 9px 36px;border:1.5px solid var(--border);border-radius:var(--r);background:var(--surface);font-family:var(--font);font-size:13.5px;color:var(--text);outline:none;}
+.sw input:focus{border-color:var(--teal);}
+.sw input::placeholder{color:var(--muted);}
+select.fs{padding:9px 13px;border:1.5px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:13.5px;color:var(--text);background:var(--surface);outline:none;}
+select.fs:focus{border-color:var(--teal);}
 .table-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;}
-/* View modal */
-.qr-display{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:center;margin-bottom:16px;}
-.qr-display canvas, .qr-display img{margin:0 auto;display:block;}
-.qr-code-val{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;word-break:break-all;}
-.detail-row{display:flex;gap:12px;margin-bottom:12px;}
-.detail-row>div{flex:1;}
-.detail-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
-.detail-val{font-size:13.5px;color:var(--text);font-weight:500;}
+.uc{display:flex;align-items:center;gap:9px;}
+.uav{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+.av-s{background:linear-gradient(135deg,var(--teal),var(--teal-dark));}
+.av-a{background:linear-gradient(135deg,#7c3aed,#5b21b6);}
+.av-e{background:linear-gradient(135deg,#1e5fa8,#1e40af);}
+.rbadge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.rb-student{background:var(--teal-glow);color:var(--teal);}
+.rb-admin{background:rgba(124,58,237,.1);color:#7c3aed;}
+.rb-security{background:var(--blue-p);color:var(--blue);}
+.modal-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;}
+.mtab{flex:1;padding:9px;border:none;background:var(--surface-2);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;color:var(--muted);border-right:1px solid var(--border);transition:all .15s;}
+.mtab:last-child{border-right:none;}
+.mtab.on{background:var(--teal);color:#fff;}
+.qr-box{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center;margin-bottom:12px;}
+.qr-val{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px;word-break:break-all;}
+.drow{display:flex;gap:12px;margin-bottom:10px;}
+.drow>div{flex:1;}
+.dlbl{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+.dval{font-size:13.5px;color:var(--text);font-weight:500;}
+.msec{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.pbar{height:3px;border-radius:2px;background:var(--border);overflow:hidden;margin-top:4px;}
+.pfill{height:100%;border-radius:2px;width:0%;transition:width .3s,background .3s;}
+.role-desc-box{background:var(--teal-glow);border:1px solid var(--teal-border);border-radius:var(--r);padding:10px 13px;font-size:12.5px;color:var(--teal);margin-top:4px;}
 </style>
 </head>
 <body>
 <div id="sidebar-root"></div>
-/* Main content */
+
 <div class="main">
   <div class="topbar">
-    <h2>Students</h2>
+    <h2>User Management</h2>
     <div class="topbar-r">
-      <span class="chip chip-teal chip-mono">BETA</span>
-      <button class="btn btn-primary" onclick="openModal('addModal')">
+      <span class="chip chip-teal chip-mono">ADMIN ONLY</span>
+      <button class="btn btn-primary" onclick="openAddModal()">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add Student
+        Add User
       </button>
     </div>
   </div>
 
   <div class="page">
+    <div class="role-tabs" id="main-role-tabs">
+      <button class="rtab on" data-role="" onclick="setRoleTab(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        All Users <span class="cnt" id="cnt-all">—</span>
+      </button>
+      <button class="rtab" data-role="student" onclick="setRoleTab(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        Students <span class="cnt" id="cnt-student">—</span>
+      </button>
+      <button class="rtab" data-role="security" onclick="setRoleTab(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Security <span class="cnt" id="cnt-security">—</span>
+      </button>
+      <button class="rtab" data-role="admin" onclick="setRoleTab(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+        Admins <span class="cnt" id="cnt-admin">—</span>
+      </button>
+    </div>
+
     <div class="toolbar">
-      <div class="iw-search">
+      <div class="sw">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="search" id="search" placeholder="Search name, ID or email…" oninput="loadStudents()">
+        <input type="search" id="search" placeholder="Search name, ID or email…" oninput="loadUsers()">
       </div>
-      <select class="fsel" id="grade-filter" onchange="loadStudents()">
+      <select class="fs" id="grade-filter" style="display:none;" onchange="loadUsers()">
         <option value="">All Grades</option>
         <option>Grade 5</option><option>Grade 6</option><option>Grade 7</option>
-      </select>
-      <select class="fsel" id="qr-filter" onchange="loadStudents()">
-        <option value="">All QR Status</option>
-        <option value="active">Active</option>
-        <option value="pending">Pending</option>
-        <option value="revoked">Revoked</option>
+        <option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option>
       </select>
     </div>
 
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Student ID</th><th>Name</th><th>Grade</th><th>Email</th><th>QR Status</th><th>Blacklisted</th><th>Actions</th></tr></thead>
-          <tbody id="stu-body"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">Loading…</td></tr></tbody>
+          <thead><tr><th>Name</th><th>Role</th><th>ID / Email</th><th>Grade</th><th>QR</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="user-body"><tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted);">Loading…</td></tr></tbody>
         </table>
       </div>
-      <div class="table-footer"><span id="row-count">—</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- Add Student Modal -->
-<div class="modal-bg" id="addModal">
-  <div class="modal">
-    <h3>Add New Student</h3>
-    <p>Fill in the details. A unique QR code is generated automatically.</p>
-    <div class="detail-row">
-      <div class="field"><label>Full Name</label><input type="text" id="add-name" placeholder="e.g. John Brown"></div>
-      <div class="field"><label>Student ID</label><input type="text" id="add-sid" placeholder="ST006" style="font-family:var(--mono)"></div>
-    </div>
-    <div class="detail-row">
-      <div class="field"><label>Email</label><input type="email" id="add-email" placeholder="john@student.pamper.edu"></div>
-      <div class="field"><label>Grade</label>
-        <select id="add-grade"><option>Grade 5</option><option>Grade 6</option><option>Grade 7</option></select>
+      <div class="table-footer">
+        <span id="row-count">—</span>
+        <button class="btn btn-outline btn-sm" onclick="exportUsers()">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
       </div>
     </div>
-    <div class="field"><label>Password</label><input type="password" id="add-pass" placeholder="Minimum 8 characters"></div>
+  </div>
+</div>
+
+<!-- ADD USER MODAL -->
+<div class="modal-bg" id="addModal">
+  <div class="modal" style="max-width:520px;">
+    <h3>Add New User</h3>
+    <p>Create a login account. Choose the role first — it determines what the user can access.</p>
+
+    <div class="msec">Role</div>
+    <div class="role-tabs" id="add-role-tabs">
+      <button class="rtab on" data-role="student" onclick="setAddRole('student',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/></svg>Student
+      </button>
+      <button class="rtab" data-role="security" onclick="setAddRole('security',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Security
+      </button>
+      <button class="rtab" data-role="admin" onclick="setAddRole('admin',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Admin
+      </button>
+    </div>
+    <div class="role-desc-box" id="add-role-desc">
+      <strong>Student:</strong> Accesses the student portal and can self check-in at the kiosk.
+    </div>
+
+    <div class="msec">Personal Details</div>
+    <div class="drow">
+      <div class="field"><label>Full Name <span style="color:var(--red)">*</span></label><input type="text" id="add-name" placeholder="e.g. John Brown"></div>
+      <div class="field"><label>Email <span style="color:var(--red)">*</span></label><input type="email" id="add-email" placeholder="user@pamper.edu"></div>
+    </div>
+    <div id="add-stu-fields">
+      <div class="drow">
+        <div class="field"><label>Student ID <span style="color:var(--red)">*</span></label><input type="text" id="add-sid" placeholder="ST010" style="font-family:var(--mono);text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="field"><label>Grade</label>
+          <select id="add-grade"><option value="">Select…</option><option>Grade 5</option><option>Grade 6</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="msec">Login Password</div>
+    <div class="drow">
+      <div class="field">
+        <label>Password <span style="color:var(--red)">*</span></label>
+        <input type="password" id="add-pass" placeholder="Min 8 characters" oninput="checkPw(this.value)">
+        <div class="pbar"><div class="pfill" id="pwfill"></div></div>
+      </div>
+      <div class="field"><label>Confirm Password <span style="color:var(--red)">*</span></label><input type="password" id="add-pass2" placeholder="Repeat password"></div>
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('addModal')">Cancel</button>
-      <button class="btn btn-primary" id="add-btn" onclick="addStudent()">
+      <button class="btn btn-primary" id="add-btn" onclick="addUser()">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add Student
+        <span id="add-lbl">Add Student</span>
       </button>
     </div>
   </div>
 </div>
 
-<!-- View / Edit Student Modal -->
+<!-- VIEW / MANAGE MODAL -->
 <div class="modal-bg" id="viewModal">
-  <div class="modal">
-    <h3 id="view-name">Student Details</h3>
-    <p id="view-email" style="font-family:var(--mono);font-size:12px;"></p>
-
-    <div class="qr-display">
-      <div id="qr-canvas"></div>
-      <div class="qr-code-val" id="qr-val"></div>
+  <div class="modal" style="max-width:500px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+      <div id="v-av" style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;"></div>
+      <div>
+        <h3 id="v-name" style="font-size:18px;margin:0;"></h3>
+        <span id="v-rbadge" class="rbadge"></span>
+        <span id="v-email" style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-left:8px;"></span>
+      </div>
     </div>
 
-    <div class="detail-row">
-      <div><div class="detail-label">Student ID</div><div class="detail-val mono" id="view-sid">—</div></div>
-      <div><div class="detail-label">Grade</div><div class="detail-val" id="view-grade">—</div></div>
-      <div><div class="detail-label">QR Status</div><div class="detail-val" id="view-qrstatus">—</div></div>
+    <div class="modal-tabs" style="margin-top:14px;">
+      <button class="mtab on" onclick="setVTab('details',this)">Details</button>
+      <button class="mtab" onclick="setVTab('qr',this)" id="qr-tab-btn">QR Code</button>
+      <button class="mtab" onclick="setVTab('edit',this)">Edit</button>
     </div>
 
-    <div class="modal-footer" style="flex-wrap:wrap;gap:8px;">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('viewModal')">Close</button>
-      <button class="btn btn-outline btn-sm" id="regen-btn" onclick="regenQR()">
+    <!-- Details -->
+    <div id="vt-details">
+      <div class="drow">
+        <div><div class="dlbl">Student ID</div><div class="dval mono" id="v-sid">—</div></div>
+        <div><div class="dlbl">Grade</div><div class="dval" id="v-grade">—</div></div>
+        <div><div class="dlbl">QR Status</div><div class="dval" id="v-qr">—</div></div>
+      </div>
+      <div class="drow">
+        <div><div class="dlbl">Account Status</div><div class="dval" id="v-status">—</div></div>
+        <div><div class="dlbl">Added On</div><div class="dval" id="v-created">—</div></div>
+      </div>
+      <div id="v-bl-reason" style="display:none;background:var(--red-p);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);padding:9px 12px;font-size:12.5px;color:var(--red);margin-top:4px;"></div>
+    </div>
+
+    <!-- QR -->
+    <div id="vt-qr" style="display:none;">
+      <div class="qr-box"><div id="v-qr-canvas"></div><div class="qr-val" id="v-qr-val"></div></div>
+      <p style="font-size:12.5px;color:var(--muted);text-align:center;margin-bottom:12px;">Print this QR code for the student's ID card.</p>
+      <button class="btn btn-outline" style="width:100%;" id="regen-btn" onclick="regenQR()">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
-        Regenerate QR
+        Regenerate QR Code
       </button>
-      <button class="btn btn-danger btn-sm" id="blacklist-btn" onclick="toggleBlacklist()">Blacklist</button>
+    </div>
+
+    <!-- Edit -->
+    <div id="vt-edit" style="display:none;">
+      <div class="drow">
+        <div class="field"><label>Full Name</label><input type="text" id="e-name"></div>
+        <div class="field"><label>Email</label><input type="email" id="e-email"></div>
+      </div>
+      <div class="drow" id="e-stu-fields">
+        <div class="field"><label>Student ID</label><input type="text" id="e-sid" style="font-family:var(--mono);"></div>
+        <div class="field"><label>Grade</label>
+          <select id="e-grade"><option value="">None</option><option>Grade 5</option><option>Grade 6</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>New Password <span style="color:var(--muted);font-weight:400;font-size:11px;">(leave blank to keep current)</span></label>
+        <input type="password" id="e-pass" placeholder="Enter new password to change it">
+      </div>
+      <button class="btn btn-primary" style="margin-top:6px;width:100%;" id="save-btn" onclick="saveEdit()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Save Changes
+      </button>
+    </div>
+
+    <div class="modal-footer" style="margin-top:16px;flex-wrap:wrap;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('viewModal')">Close</button>
+      <button class="btn btn-sm" id="bl-btn" onclick="toggleBlacklist()" style="background:var(--amber);color:#fff;">Suspend User</button>
+      <button class="btn btn-danger btn-sm" id="del-btn" onclick="deleteUser()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+        Delete
+      </button>
     </div>
   </div>
 </div>
@@ -131,104 +248,247 @@ select.fsel:focus{border-color:var(--teal);}
 injectSidebar('students');
 initAuth(['admin']);
 
-let viewingId = null;
+let currentRole='', viewingUser=null, allUsers=[], addRole='student';
 
-async function loadStudents() {
-  const search = document.getElementById('search').value;
-  const grade  = document.getElementById('grade-filter').value;
-  const params = new URLSearchParams({ role:'student' });
-  if (search) params.set('search', search);
-  if (grade)  params.set('grade', grade);
+const roleDescs={
+  student:  '<strong>Student:</strong> Accesses the student portal. Can view QR code, attendance history, and self check-in at the kiosk.',
+  security: '<strong>Security Staff:</strong> Accesses the admin dashboard and QR scanner. Can record attendance but cannot manage users.',
+  admin:    '<strong>Administrator:</strong> Full access to all pages including user management, reports, geofence settings. Use carefully.'
+};
 
-  const res = await api.get(`/api/users?${params}`);
-  const body = document.getElementById('stu-body');
-  document.getElementById('row-count').textContent = `${res.data.length} student${res.data.length!==1?'s':''}`;
-
-  if (!res.data.length) {
-    body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">No students found</td></tr>';
-    return;
-  }
-
-  body.innerHTML = res.data.map(s => `
-    <tr>
-      <td class="mono">${s.student_id||'—'}</td>
-      <td><div class="stu-cell"><div class="stu-av">${initials(s.full_name)}</div>${s.full_name}</div></td>
-      <td>${s.grade||'—'}</td>
-      <td style="font-size:12.5px;color:var(--muted);">${s.email}</td>
-      <td><span class="pill ${s.qr_status==='active'?'pill-g':s.qr_status==='pending'?'pill-a':'pill-r'}">${s.qr_status||'—'}</span></td>
-      <td>${s.is_blacklisted?'<span class="pill pill-r">Yes</span>':'<span style="color:var(--muted);font-size:12px;">No</span>'}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="viewStudent('${s.id}','${s.full_name}','${s.email}','${s.student_id||''}','${s.grade||''}','${s.qr_code||''}','${s.qr_status||''}','${s.is_blacklisted}')">View</button></td>
-    </tr>`).join('');
+async function loadUsers(){
+  const s=document.getElementById('search').value;
+  const g=document.getElementById('grade-filter').value;
+  const p=new URLSearchParams();
+  if(currentRole) p.set('role',currentRole);
+  if(s) p.set('search',s);
+  if(g) p.set('grade',g);
+  try{
+    const res=await api.get(`/api/users?${p}&limit=200`);
+    allUsers=res.data||[];
+    renderTable(allUsers);
+    updateCounts(allUsers);
+  }catch(e){ toast('Failed to load',''+e.message,'err'); }
 }
 
-function viewStudent(id, name, email, sid, grade, qr, qrStatus, blacklisted) {
-  viewingId = id;
-  document.getElementById('view-name').textContent = name;
-  document.getElementById('view-email').textContent = email;
-  document.getElementById('view-sid').textContent   = sid || '—';
-  document.getElementById('view-grade').textContent = grade || '—';
-  document.getElementById('view-qrstatus').innerHTML= `<span class="pill ${qrStatus==='active'?'pill-g':qrStatus==='pending'?'pill-a':'pill-r'}">${qrStatus}</span>`;
-  document.getElementById('qr-val').textContent = qr;
-  document.getElementById('blacklist-btn').textContent = blacklisted==='true' ? 'Remove Blacklist' : 'Blacklist';
-  document.getElementById('blacklist-btn').className   = blacklisted==='true' ? 'btn btn-ghost btn-sm' : 'btn btn-danger btn-sm';
+function updateCounts(data){
+  document.getElementById('cnt-all').textContent=data.length||'—';
+}
+async function loadAllCounts(){
+  try{
+    const r=await api.get('/api/users?limit=500');
+    const d=r.data||[];
+    document.getElementById('cnt-all').textContent=d.length;
+    document.getElementById('cnt-student').textContent=d.filter(u=>u.role==='student').length;
+    document.getElementById('cnt-security').textContent=d.filter(u=>u.role==='security').length;
+    document.getElementById('cnt-admin').textContent=d.filter(u=>u.role==='admin').length;
+  }catch(e){}
+}
 
-  // Render QR
-  const c = document.getElementById('qr-canvas');
-  c.innerHTML = '';
-  if (qr) new QRCode(c, { text: qr, width:160, height:160, correctLevel: QRCode.CorrectLevel.M });
+function renderTable(data){
+  const b=document.getElementById('user-body');
+  document.getElementById('row-count').textContent=`${data.length} user${data.length!==1?'s':''}`;
+  if(!data.length){b.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted);">No users found</td></tr>`;return;}
+  b.innerHTML=data.map(u=>{
+    const ac=u.role==='admin'?'av-a':u.role==='security'?'av-e':'av-s';
+    const bg=u.role==='admin'?'linear-gradient(135deg,#7c3aed,#5b21b6)':u.role==='security'?'linear-gradient(135deg,#1e5fa8,#1e40af)':'linear-gradient(135deg,var(--teal),var(--teal-dark))';
+    const qrp=u.role==='student'?`<span class="pill ${u.qr_status==='active'?'pill-g':'pill-a'}">${u.qr_status||'—'}</span>`:`<span style="color:var(--muted);font-size:12px;">N/A</span>`;
+    const stp=u.is_blacklisted?'<span class="pill pill-r">Suspended</span>':'<span class="pill pill-g">Active</span>';
+    const sd=encodeURIComponent(JSON.stringify({...u}));
+    return`<tr>
+      <td><div class="uc"><div class="uav ${ac}" style="background:${bg}">${initials(u.full_name)}</div><span style="font-weight:600;">${u.full_name}</span></div></td>
+      <td><span class="rbadge rb-${u.role}">${capitalise(u.role)}</span></td>
+      <td><div class="mono" style="font-size:12px;">${u.student_id||'—'}</div><div style="font-size:12px;color:var(--muted);">${u.email}</div></td>
+      <td style="font-size:13px;">${u.grade||'<span style="color:var(--muted);">—</span>'}</td>
+      <td>${qrp}</td>
+      <td>${stp}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick='openViewModal(decodeURIComponent("${sd}"))'>Manage</button></td>
+    </tr>`;
+  }).join('');
+}
 
+function setRoleTab(btn){
+  document.querySelectorAll('#main-role-tabs .rtab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  currentRole=btn.dataset.role;
+  document.getElementById('grade-filter').style.display=currentRole==='student'?'':'none';
+  loadUsers();
+}
+
+function openAddModal(){
+  ['add-name','add-email','add-sid','add-pass','add-pass2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('add-grade').value='';
+  document.getElementById('pwfill').style.width='0%';
+  setAddRole('student',document.querySelector('#add-role-tabs .rtab[data-role="student"]'));
+  openModal('addModal');
+}
+
+function setAddRole(role,btn){
+  addRole=role;
+  document.querySelectorAll('#add-role-tabs .rtab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('add-stu-fields').style.display=role==='student'?'':'none';
+  document.getElementById('add-role-desc').innerHTML=roleDescs[role];
+  document.getElementById('add-lbl').textContent=role==='student'?'Add Student':role==='security'?'Add Security Staff':'Add Administrator';
+  document.getElementById('add-email').placeholder=role==='student'?'john@student.pamper.edu':role==='security'?'officer@pamper.edu':'admin@pamper.edu';
+}
+
+function checkPw(v){
+  const f=document.getElementById('pwfill');
+  let s=0;
+  if(v.length>=8)s++;if(/[A-Z]/.test(v))s++;if(/[0-9]/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;
+  f.style.width=['0%','25%','50%','75%','100%'][s];
+  f.style.background=['transparent','#ef4444','#f59e0b','#3b82f6','#10b981'][s];
+}
+
+async function addUser(){
+  const name=document.getElementById('add-name').value.trim();
+  const email=document.getElementById('add-email').value.trim();
+  const pass=document.getElementById('add-pass').value;
+  const pass2=document.getElementById('add-pass2').value;
+  const sid=document.getElementById('add-sid').value.trim().toUpperCase();
+  const grade=document.getElementById('add-grade').value;
+  if(!name){toast('Required','Full name is required','err');return;}
+  if(!email){toast('Required','Email is required','err');return;}
+  if(!pass||pass.length<8){toast('Weak password','Minimum 8 characters','err');return;}
+  if(pass!==pass2){toast('Mismatch','Passwords do not match','err');return;}
+  if(addRole==='student'&&!sid){toast('Required','Student ID is required for students','err');return;}
+  const btn=document.getElementById('add-btn');
+  setLoading(btn,true);
+  try{
+    const body={full_name:name,email,password:pass,role:addRole};
+    if(addRole==='student'){body.student_id=sid;body.grade=grade;}
+    await api.post('/api/users',body);
+    toast(capitalise(addRole)+' added!',name+' can now log in to PAMPER','ok');
+    closeModal('addModal');
+    loadUsers();loadAllCounts();
+  }catch(e){toast('Failed',e.message,'err');}
+  finally{setLoading(btn,false);}
+}
+
+function openViewModal(jsonStr){
+  const u=JSON.parse(jsonStr);
+  viewingUser=u;
+  const bg=u.role==='admin'?'linear-gradient(135deg,#7c3aed,#5b21b6)':u.role==='security'?'linear-gradient(135deg,#1e5fa8,#1e40af)':'linear-gradient(135deg,var(--teal),var(--teal-dark))';
+  const av=document.getElementById('v-av');
+  av.textContent=initials(u.full_name);
+  av.style.background=bg;
+  document.getElementById('v-name').textContent=u.full_name;
+  document.getElementById('v-email').textContent=u.email;
+  document.getElementById('v-rbadge').textContent=capitalise(u.role);
+  document.getElementById('v-rbadge').className=`rbadge rb-${u.role}`;
+  document.getElementById('v-sid').textContent=u.student_id||'—';
+  document.getElementById('v-grade').textContent=u.grade||'—';
+  document.getElementById('v-qr').innerHTML=u.role==='student'?`<span class="pill ${u.qr_status==='active'?'pill-g':'pill-a'}">${u.qr_status||'—'}</span>`:'N/A';
+  document.getElementById('v-status').innerHTML=u.is_blacklisted?'<span class="pill pill-r">Suspended</span>':'<span class="pill pill-g">Active</span>';
+  document.getElementById('v-created').textContent=u.created_at?new Date(u.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+  const br=document.getElementById('v-bl-reason');
+  if(u.is_blacklisted&&u.blacklist_reason){br.style.display='';br.textContent='Reason: '+u.blacklist_reason;}
+  else br.style.display='none';
+  document.getElementById('qr-tab-btn').style.display=u.role==='student'?'':'none';
+  document.getElementById('e-name').value=u.full_name;
+  document.getElementById('e-email').value=u.email;
+  document.getElementById('e-sid').value=u.student_id||'';
+  document.getElementById('e-grade').value=u.grade||'';
+  document.getElementById('e-pass').value='';
+  document.getElementById('e-stu-fields').style.display=u.role==='student'?'':'none';
+  const blb=document.getElementById('bl-btn');
+  blb.textContent=u.is_blacklisted?'Remove Suspension':'Suspend User';
+  blb.style.background=u.is_blacklisted?'var(--green)':'var(--amber)';
+  setVTab('details',document.querySelector('#viewModal .mtab'));
   openModal('viewModal');
 }
 
-async function regenQR() {
-  if (!viewingId) return;
-  const btn = document.getElementById('regen-btn');
-  setLoading(btn, true);
-  try {
-    const res = await api.post(`/api/users/${viewingId}/regenerate-qr`);
-    toast('QR code regenerated', `New code: ${res.qr_code.slice(0,12)}…`, 'ok');
-    closeModal('viewModal');
-    loadStudents();
-  } catch(e) { toast('Failed', e.message, 'err'); }
-  finally { setLoading(btn, false); }
+function setVTab(tab,btn){
+  document.querySelectorAll('#viewModal .mtab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('vt-details').style.display=tab==='details'?'':'none';
+  document.getElementById('vt-qr').style.display=tab==='qr'?'':'none';
+  document.getElementById('vt-edit').style.display=tab==='edit'?'':'none';
+  if(tab==='qr'&&viewingUser?.qr_code){
+    const c=document.getElementById('v-qr-canvas');c.innerHTML='';
+    document.getElementById('v-qr-val').textContent=viewingUser.qr_code;
+    new QRCode(c,{text:viewingUser.qr_code,width:170,height:170,correctLevel:QRCode.CorrectLevel.M});
+  }
 }
 
-async function toggleBlacklist() {
-  if (!viewingId) return;
-  const btn = document.getElementById('blacklist-btn');
-  const isBlacklisted = btn.textContent.trim() === 'Remove Blacklist';
-  const reason = isBlacklisted ? null : prompt('Reason for blacklisting (optional):');
-  setLoading(btn, true);
-  try {
-    await api.post(`/api/users/${viewingId}/blacklist`, { blacklist: !isBlacklisted, reason });
-    toast(isBlacklisted ? 'Blacklist removed' : 'Student blacklisted', '', isBlacklisted ? 'ok' : 'warn');
-    closeModal('viewModal');
-    loadStudents();
-  } catch(e) { toast('Failed', e.message, 'err'); }
-  finally { setLoading(btn, false); }
+async function regenQR(){
+  if(!viewingUser)return;
+  if(!confirm('Regenerate QR code? The old code will stop working immediately.'))return;
+  const btn=document.getElementById('regen-btn');setLoading(btn,true);
+  try{
+    const r=await api.post(`/api/users/${viewingUser.id}/regenerate-qr`);
+    viewingUser.qr_code=r.qr_code;
+    const c=document.getElementById('v-qr-canvas');c.innerHTML='';
+    document.getElementById('v-qr-val').textContent=r.qr_code;
+    new QRCode(c,{text:r.qr_code,width:170,height:170,correctLevel:QRCode.CorrectLevel.M});
+    toast('QR regenerated','New QR code is now active','ok');
+    loadUsers();
+  }catch(e){toast('Failed',e.message,'err');}
+  finally{setLoading(btn,false);}
 }
 
-async function addStudent() {
-  const name  = document.getElementById('add-name').value.trim();
-  const sid   = document.getElementById('add-sid').value.trim();
-  const email = document.getElementById('add-email').value.trim();
-  const grade = document.getElementById('add-grade').value;
-  const pass  = document.getElementById('add-pass').value;
-  if (!name||!email||!pass) { toast('Missing fields','Fill all required fields','err'); return; }
-
-  const btn = document.getElementById('add-btn');
-  setLoading(btn, true);
-  try {
-    await api.post('/api/users', { full_name:name, student_id:sid, email, grade, password:pass, role:'student' });
-    toast('Student added!', name+' has been enrolled', 'ok');
-    closeModal('addModal');
-    loadStudents();
-    ['add-name','add-sid','add-email','add-pass'].forEach(id=>document.getElementById(id).value='');
-  } catch(e) { toast('Failed', e.message, 'err'); }
-  finally { setLoading(btn, false); }
+async function saveEdit(){
+  if(!viewingUser)return;
+  const name=document.getElementById('e-name').value.trim();
+  const email=document.getElementById('e-email').value.trim();
+  const sid=document.getElementById('e-sid').value.trim();
+  const grade=document.getElementById('e-grade').value;
+  const pass=document.getElementById('e-pass').value;
+  if(!name||!email){toast('Required','Name and email are required','err');return;}
+  if(pass&&pass.length<8){toast('Weak password','Minimum 8 characters','err');return;}
+  const btn=document.getElementById('save-btn');setLoading(btn,true);
+  try{
+    const upd={full_name:name,email};
+    if(viewingUser.role==='student'){upd.student_id=sid;upd.grade=grade;}
+    await api.patch(`/api/users/${viewingUser.id}`,upd);
+    if(pass) await api.post(`/api/users/${viewingUser.id}/reset-password`,{new_password:pass});
+    toast('Saved!',name+' has been updated','ok');
+    closeModal('viewModal');loadUsers();
+  }catch(e){toast('Failed to save',e.message,'err');}
+  finally{setLoading(btn,false);}
 }
 
-loadStudents();
+async function toggleBlacklist(){
+  if(!viewingUser)return;
+  const isBL=viewingUser.is_blacklisted;
+  const reason=isBL?null:prompt(`Reason for suspending ${viewingUser.full_name}:`);
+  if(!isBL&&reason===null)return;
+  const btn=document.getElementById('bl-btn');setLoading(btn,true);
+  try{
+    await api.post(`/api/users/${viewingUser.id}/blacklist`,{blacklist:!isBL,reason});
+    toast(isBL?'Suspension lifted':'User suspended',viewingUser.full_name+(isBL?' can now log in again':' is now blocked'),isBL?'ok':'warn');
+    closeModal('viewModal');loadUsers();loadAllCounts();
+  }catch(e){toast('Failed',e.message,'err');}
+  finally{setLoading(btn,false);}
+}
+
+async function deleteUser(){
+  if(!viewingUser)return;
+  if(!confirm(`Permanently delete "${viewingUser.full_name}"? This cannot be undone and will remove all their attendance records.`))return;
+  const btn=document.getElementById('del-btn');setLoading(btn,true);
+  try{
+    await api.delete(`/api/users/${viewingUser.id}`);
+    toast('User deleted',viewingUser.full_name+' has been permanently removed','ok');
+    closeModal('viewModal');loadUsers();loadAllCounts();
+  }catch(e){toast('Failed',e.message,'err');}
+  finally{setLoading(btn,false);}
+}
+
+function exportUsers(){
+  if(!allUsers.length){toast('No data','Load users first','warn');return;}
+  const h=['Name','Role','Student ID','Email','Grade','QR Status','Blacklisted','Created'];
+  const r=allUsers.map(u=>[u.full_name,u.role,u.student_id||'',u.email,u.grade||'',u.qr_status||'',u.is_blacklisted?'Yes':'No',u.created_at?new Date(u.created_at).toLocaleDateString():'']);
+  const csv=[h,...r].map(row=>row.map(v=>`"${v}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`pamper_users_${new Date().toISOString().split('T')[0]}.csv`;a.click();
+  URL.revokeObjectURL(url);
+  toast('Export ready',`${allUsers.length} users exported`,'ok');
+}
+
+loadUsers();
+loadAllCounts();
 </script>
 </body>
 </html>

@@ -5,519 +5,361 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PAMPER – Student Check-In</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 :root {
-  --teal:       #0e8a7c;
-  --teal-dark:  #0a6b60;
-  --teal-light: #1ab5a4;
-  --navy:       #0b1e24;
-  --navy-mid:   #0f2830;
-  --green:      #10b981;
-  --red:        #ef4444;
-  --amber:      #f59e0b;
-  --font:       'Plus Jakarta Sans', sans-serif;
-  --mono:       'DM Mono', monospace;
+  --teal:#0e8a7c;--teal-dark:#0a6b60;--teal-light:#1ab5a4;
+  --navy:#0b1e24;--green:#10b981;--red:#ef4444;--amber:#f59e0b;
+  --font:'Plus Jakarta Sans',sans-serif;--mono:'DM Mono',monospace;
 }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font);background:var(--navy);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px 16px;-webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden;
+}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 20% 50%,rgba(14,138,124,.15) 0%,transparent 60%),radial-gradient(ellipse 40% 60% at 80% 30%,rgba(14,138,124,.08) 0%,transparent 55%);pointer-events:none;}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(14,138,124,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(14,138,124,.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Header */
+.page-header{text-align:center;margin-bottom:24px;position:relative;z-index:1;}
+.brand-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px;}
+.brand-mark{width:38px;height:38px;background:linear-gradient(145deg,var(--teal-dark),var(--teal));border-radius:9px;padding:7px;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;box-shadow:0 4px 16px rgba(14,138,124,.4);}
+.brand-mark span{background:rgba(255,255,255,.9);border-radius:1.5px;}
+.brand-mark span:nth-child(5){background:transparent;}
+.brand-name{font-family:var(--mono);font-size:20px;letter-spacing:4px;color:#fff;}
+.page-header p{font-size:13px;color:rgba(255,255,255,.38);}
 
-body {
-  font-family: var(--font);
-  background: var(--navy);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  -webkit-font-smoothing: antialiased;
-  position: relative;
-  overflow: hidden;
-}
+/* Card */
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(14,138,124,.2);border-radius:20px;width:100%;max-width:460px;padding:26px 26px 22px;position:relative;z-index:1;backdrop-filter:blur(8px);box-shadow:0 24px 64px rgba(0,0,0,.35);animation:up .5s cubic-bezier(.22,1,.36,1) both;}
+@keyframes up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.card-title{font-size:18px;font-weight:800;color:#fff;text-align:center;margin-bottom:4px;}
+.card-sub{font-size:13px;color:rgba(255,255,255,.35);text-align:center;margin-bottom:20px;}
 
-/* Background atmosphere */
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background:
-    radial-gradient(ellipse 60% 50% at 20% 50%, rgba(14,138,124,.15) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 60% at 80% 30%, rgba(14,138,124,.08) 0%, transparent 55%);
-  pointer-events: none;
-}
-body::after {
-  content: '';
-  position: fixed; inset: 0;
-  background-image:
-    linear-gradient(rgba(14,138,124,.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(14,138,124,.04) 1px, transparent 1px);
-  background-size: 48px 48px;
-  pointer-events: none;
-}
+/* In/Out toggle */
+.type-toggle{display:flex;gap:6px;background:rgba(255,255,255,.05);border-radius:11px;padding:4px;margin-bottom:18px;}
+.type-btn{flex:1;padding:10px 8px;border-radius:8px;border:none;font-family:var(--font);font-size:13.5px;font-weight:700;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:7px;color:rgba(255,255,255,.32);background:transparent;}
+.type-btn svg{width:15px;height:15px;stroke:currentColor;flex-shrink:0;}
+.type-btn.ain{background:var(--teal);color:#fff;box-shadow:0 3px 12px rgba(14,138,124,.4);}
+.type-btn.aout{background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);}
+.type-btn:hover:not(.ain):not(.aout){background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);}
 
-/* ── Header ── */
-.page-header {
-  text-align: center;
-  margin-bottom: 32px;
-  position: relative; z-index: 1;
-}
-.brand-row {
-  display: flex; align-items: center; justify-content: center;
-  gap: 12px; margin-bottom: 12px;
-}
-.brand-mark {
-  width: 40px; height: 40px;
-  background: linear-gradient(145deg, var(--teal-dark), var(--teal));
-  border-radius: 10px; padding: 8px;
-  display: grid; grid-template-columns: repeat(3,1fr); gap: 3px;
-  box-shadow: 0 4px 16px rgba(14,138,124,.4);
-}
-.brand-mark span { background: rgba(255,255,255,.9); border-radius: 1.5px; }
-.brand-mark span:nth-child(5) { background: transparent; }
-.brand-name {
-  font-family: var(--mono); font-size: 22px;
-  letter-spacing: 4px; color: #fff; font-weight: 500;
-}
-.page-header p {
-  font-size: 14px; color: rgba(255,255,255,.45); letter-spacing: .3px;
-}
+/* Method tabs */
+.method-tabs{display:flex;border:1.5px solid rgba(14,138,124,.2);border-radius:10px;overflow:hidden;margin-bottom:18px;}
+.mtab{flex:1;padding:10px 8px;border:none;background:transparent;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;color:rgba(255,255,255,.38);border-right:1.5px solid rgba(14,138,124,.2);}
+.mtab:last-child{border-right:none;}
+.mtab svg{width:14px;height:14px;stroke:currentColor;flex-shrink:0;}
+.mtab.on{background:rgba(14,138,124,.15);color:var(--teal-light);}
+.mtab:hover:not(.on){background:rgba(255,255,255,.04);color:rgba(255,255,255,.6);}
 
-/* ── Main card ── */
-.card {
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(14,138,124,.2);
-  border-radius: 20px;
-  width: 100%; max-width: 440px;
-  padding: 36px 36px 32px;
-  position: relative; z-index: 1;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 24px 64px rgba(0,0,0,.35);
-  animation: up .5s cubic-bezier(.22,1,.36,1) both;
-}
+/* Panels */
+.panel{display:none;}
+.panel.show{display:block;animation:fi .2s ease;}
+@keyframes fi{from{opacity:0}to{opacity:1}}
 
-@keyframes up {
-  from { opacity:0; transform: translateY(24px); }
-  to   { opacity:1; transform: translateY(0); }
-}
+/* QR scanner */
+.scanner-wrap{background:#000;border-radius:12px;overflow:hidden;position:relative;margin-bottom:12px;}
+.corners{position:absolute;inset:0;pointer-events:none;z-index:10;}
+.scanline{position:absolute;left:8%;right:8%;height:2px;background:linear-gradient(90deg,transparent,var(--teal-light) 30%,var(--teal) 50%,var(--teal-light) 70%,transparent);box-shadow:0 0 8px var(--teal);animation:sl 2.2s ease-in-out infinite;}
+@keyframes sl{0%{top:10%}50%{top:88%}100%{top:10%}}
+.c{position:absolute;width:20px;height:20px;border-color:var(--teal-light);border-style:solid;}
+.c.tl{top:9px;left:9px;border-width:2px 0 0 2px;}
+.c.tr{top:9px;right:9px;border-width:2px 2px 0 0;}
+.c.bl{bottom:9px;left:9px;border-width:0 0 2px 2px;}
+.c.br{bottom:9px;right:9px;border-width:0 2px 2px 0;}
+#qr-reader{width:100%;}
+#qr-reader__scan_region{border-radius:0 !important;}
+#qr-reader__dashboard_section_csr button{margin:8px auto !important;padding:9px 22px !important;background:var(--teal) !important;color:#fff !important;border:none !important;border-radius:8px !important;font-family:var(--font) !important;font-size:13px !important;font-weight:600 !important;cursor:pointer !important;display:block !important;}
+#qr-reader__dashboard_section_csr select{padding:6px 10px !important;border:1.5px solid rgba(14,138,124,.3) !important;border-radius:7px !important;font-family:var(--font) !important;background:rgba(255,255,255,.07) !important;color:rgba(255,255,255,.7) !important;}
+#qr-reader__header_message{color:rgba(255,255,255,.38) !important;font-size:12px !important;font-family:var(--font) !important;padding:8px !important;text-align:center !important;}
+.scan-hint{text-align:center;font-family:var(--mono);font-size:11px;color:rgba(26,181,164,.4);margin-bottom:2px;}
 
-.card-title {
-  font-size: 20px; font-weight: 800; color: #fff;
-  margin-bottom: 6px; text-align: center;
-}
-.card-sub {
-  font-size: 13.5px; color: rgba(255,255,255,.4);
-  text-align: center; margin-bottom: 28px; line-height: 1.6;
-}
+/* Manual ID */
+.ilabel{display:block;font-size:10.5px;font-weight:700;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.iwrap{position:relative;margin-bottom:12px;}
+.iwrap svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:rgba(255,255,255,.22);pointer-events:none;transition:stroke .15s;}
+.iwrap:focus-within svg{stroke:var(--teal-light);}
+#sid{width:100%;padding:13px 13px 13px 42px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);border-radius:11px;font-family:var(--mono);font-size:20px;font-weight:500;color:#fff;outline:none;letter-spacing:3px;text-transform:uppercase;transition:border-color .18s,background .18s;}
+#sid::placeholder{color:rgba(255,255,255,.18);font-size:13px;letter-spacing:1px;font-family:var(--font);}
+#sid:focus{border-color:var(--teal);background:rgba(14,138,124,.1);}
+.sbtn{width:100%;padding:13px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));border:none;border-radius:11px;font-family:var(--font);font-size:15px;font-weight:800;color:#fff;cursor:pointer;box-shadow:0 4px 18px rgba(14,138,124,.4);transition:transform .15s,box-shadow .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.sbtn svg{width:18px;height:18px;stroke:currentColor;flex-shrink:0;}
+.sbtn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 7px 24px rgba(14,138,124,.55);}
+.sbtn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
 
-/* Type toggle */
-.type-toggle {
-  display: flex; gap: 8px;
-  background: rgba(255,255,255,.05);
-  border-radius: 12px; padding: 4px;
-  margin-bottom: 24px;
-}
-.type-btn {
-  flex: 1; padding: 11px 8px;
-  border-radius: 9px; border: none;
-  font-family: var(--font); font-size: 14px; font-weight: 700;
-  cursor: pointer; transition: all .18s;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-.type-btn svg { width: 17px; height: 17px; stroke: currentColor; flex-shrink: 0; }
-.type-btn.in  { background: transparent; color: rgba(255,255,255,.35); }
-.type-btn.out { background: transparent; color: rgba(255,255,255,.35); }
-.type-btn.in.active  { background: var(--teal); color: #fff; box-shadow: 0 4px 16px rgba(14,138,124,.4); }
-.type-btn.out.active { background: rgba(255,255,255,.1); color: rgba(255,255,255,.85); border: 1.5px solid rgba(255,255,255,.15); }
-.type-btn:hover:not(.active) { background: rgba(255,255,255,.08); color: rgba(255,255,255,.7); }
+/* Result */
+.result{margin-top:16px;border-radius:13px;padding:18px;display:none;text-align:center;animation:up .3s ease;}
+.result.show{display:block;}
+.result.ok{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);}
+.result.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);}
+.result.warn{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);}
+.rico{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;}
+.result.ok  .rico{background:rgba(16,185,129,.2);}
+.result.err .rico{background:rgba(239,68,68,.2);}
+.result.warn .rico{background:rgba(245,158,11,.2);}
+.rico svg{width:22px;height:22px;}
+.result.ok   .rico svg{stroke:var(--green);}
+.result.err  .rico svg{stroke:var(--red);}
+.result.warn .rico svg{stroke:var(--amber);}
+.rname{font-size:18px;font-weight:800;margin-bottom:4px;}
+.result.ok   .rname{color:#6ee7b7;}
+.result.err  .rname{color:#fca5a5;}
+.result.warn .rname{color:#fde68a;}
+.rmsg{font-size:13px;opacity:.8;line-height:1.6;}
+.result.ok   .rmsg{color:#6ee7b7;}
+.result.err  .rmsg{color:#fca5a5;}
+.result.warn .rmsg{color:#fde68a;}
+.rmeta{margin-top:8px;font-family:var(--mono);font-size:11px;opacity:.55;}
+.result.ok   .rmeta{color:#6ee7b7;}
+.result.err  .rmeta{color:#fca5a5;}
+.result.warn .rmeta{color:#fde68a;}
 
-/* ID input */
-.input-label {
-  font-size: 11px; font-weight: 700; color: rgba(255,255,255,.4);
-  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
-  display: block;
-}
-.id-input-wrap { position: relative; margin-bottom: 16px; }
-.id-input-wrap svg {
-  position: absolute; left: 14px; top: 50%;
-  transform: translateY(-50%);
-  width: 18px; height: 18px; stroke: rgba(255,255,255,.25);
-  pointer-events: none; transition: stroke .15s;
-}
-.id-input-wrap:focus-within svg { stroke: var(--teal-light); }
-#student-id-input {
-  width: 100%;
-  padding: 14px 16px 14px 46px;
-  background: rgba(255,255,255,.07);
-  border: 1.5px solid rgba(255,255,255,.12);
-  border-radius: 12px;
-  font-family: var(--mono); font-size: 18px; font-weight: 500;
-  color: #fff; outline: none; letter-spacing: 2px;
-  text-transform: uppercase;
-  transition: border-color .18s, background .18s;
-}
-#student-id-input::placeholder {
-  color: rgba(255,255,255,.2); font-size: 14px; letter-spacing: 1px;
-  font-family: var(--font);
-}
-#student-id-input:focus {
-  border-color: var(--teal);
-  background: rgba(14,138,124,.1);
-}
+.cbtn{width:100%;margin-top:9px;padding:10px;background:transparent;border:1.5px solid rgba(255,255,255,.1);border-radius:9px;font-family:var(--font);font-size:13px;font-weight:600;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;display:none;}
+.cbtn.show{display:block;}
+.cbtn:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);}
 
-/* Submit button */
-.submit-btn {
-  width: 100%; padding: 15px;
-  background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
-  border: none; border-radius: 12px;
-  font-family: var(--font); font-size: 16px; font-weight: 800;
-  color: #fff; cursor: pointer;
-  box-shadow: 0 4px 20px rgba(14,138,124,.45);
-  transition: transform .15s, box-shadow .15s, opacity .15s;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  margin-top: 8px;
-}
-.submit-btn svg { width: 20px; height: 20px; stroke: currentColor; flex-shrink: 0; }
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 28px rgba(14,138,124,.6);
-}
-.submit-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-
-/* Result panel */
-.result {
-  margin-top: 20px;
-  border-radius: 12px;
-  padding: 18px 20px;
-  display: none;
-  animation: up .3s ease;
-}
-.result.show { display: block; }
-.result.ok {
-  background: rgba(16,185,129,.12);
-  border: 1px solid rgba(16,185,129,.3);
-}
-.result.err {
-  background: rgba(239,68,68,.12);
-  border: 1px solid rgba(239,68,68,.3);
-}
-.result.warn {
-  background: rgba(245,158,11,.12);
-  border: 1px solid rgba(245,158,11,.3);
-}
-.result-icon {
-  width: 42px; height: 42px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 12px; flex-shrink: 0;
-}
-.result.ok   .result-icon { background: rgba(16,185,129,.2); }
-.result.err  .result-icon { background: rgba(239,68,68,.2); }
-.result.warn .result-icon { background: rgba(245,158,11,.2); }
-.result-icon svg { width: 22px; height: 22px; }
-.result.ok   .result-icon svg { stroke: var(--green); }
-.result.err  .result-icon svg { stroke: var(--red); }
-.result.warn .result-icon svg { stroke: var(--amber); }
-.result-name {
-  font-size: 18px; font-weight: 800; text-align: center; margin-bottom: 4px;
-}
-.result.ok   .result-name { color: #6ee7b7; }
-.result.err  .result-name { color: #fca5a5; }
-.result.warn .result-name { color: #fde68a; }
-.result-msg {
-  font-size: 13.5px; text-align: center; opacity: .8; line-height: 1.6;
-}
-.result.ok   .result-msg { color: #6ee7b7; }
-.result.err  .result-msg { color: #fca5a5; }
-.result.warn .result-msg { color: #fde68a; }
-.result-time {
-  font-family: var(--mono); font-size: 11.5px;
-  text-align: center; opacity: .6; margin-top: 6px;
-}
-
-/* Clear btn */
-.clear-btn {
-  width: 100%; margin-top: 12px; padding: 11px;
-  background: transparent;
-  border: 1.5px solid rgba(255,255,255,.12);
-  border-radius: 10px;
-  font-family: var(--font); font-size: 14px; font-weight: 600;
-  color: rgba(255,255,255,.5); cursor: pointer;
-  transition: all .15s; display: none;
-}
-.clear-btn:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.8); }
-.clear-btn.show { display: block; }
+/* Recent */
+.recent{width:100%;max-width:460px;margin-top:12px;position:relative;z-index:1;}
+.rtitle{font-size:10px;font-weight:700;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px;text-align:center;}
+.rlist{display:flex;flex-direction:column;gap:5px;}
+.ritem{background:rgba(255,255,255,.04);border:1px solid rgba(14,138,124,.1);border-radius:9px;padding:9px 13px;display:flex;align-items:center;justify-content:space-between;animation:up .25s ease both;}
+.riname{font-size:13px;font-weight:600;color:rgba(255,255,255,.65);}
+.rimeta{font-size:10.5px;color:rgba(255,255,255,.28);font-family:var(--mono);margin-top:1px;}
+.bdg{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;}
+.bin{background:rgba(16,185,129,.15);color:#6ee7b7;}
+.bout{background:rgba(255,255,255,.08);color:rgba(255,255,255,.42);}
+.bqr{background:rgba(14,138,124,.2);color:var(--teal-light);margin-right:4px;}
 
 /* Footer */
-.page-footer {
-  margin-top: 24px;
-  font-family: var(--mono); font-size: 10.5px;
-  color: rgba(255,255,255,.2); letter-spacing: 1px;
-  text-align: center; position: relative; z-index: 1;
-}
-.page-footer a {
-  color: rgba(14,138,124,.6); text-decoration: none;
-}
-.page-footer a:hover { color: var(--teal-light); }
+.footer{margin-top:16px;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.16);letter-spacing:1px;text-align:center;position:relative;z-index:1;}
+.footer a{color:rgba(14,138,124,.5);text-decoration:none;}
+.footer a:hover{color:var(--teal-light);}
 
-/* Spinner */
-@keyframes spin { to { transform: rotate(360deg); } }
-.spin { animation: spin .7s linear infinite; display: inline-block; }
-
-/* Recent scans strip */
-.recent-strip {
-  width: 100%; max-width: 440px;
-  position: relative; z-index: 1;
-  margin-top: 16px;
-}
-.recent-title {
-  font-size: 11px; font-weight: 700; color: rgba(255,255,255,.25);
-  text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;
-  text-align: center;
-}
-.recent-list { display: flex; flex-direction: column; gap: 6px; }
-.recent-item {
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(14,138,124,.1);
-  border-radius: 10px; padding: 10px 16px;
-  display: flex; align-items: center; justify-content: space-between;
-  animation: up .3s ease both;
-}
-.recent-item-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.7); }
-.recent-item-meta { font-size: 11px; color: rgba(255,255,255,.35); margin-top: 1px; }
-.recent-item-badge {
-  font-family: var(--mono); font-size: 10.5px; font-weight: 500;
-  padding: 3px 10px; border-radius: 20px;
-}
-.badge-in  { background: rgba(16,185,129,.15); color: #6ee7b7; }
-.badge-out { background: rgba(255,255,255,.08); color: rgba(255,255,255,.5); }
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin .7s linear infinite;}
 </style>
 </head>
 <body>
 
-<!-- Header -->
 <div class="page-header">
   <div class="brand-row">
-    <div class="brand-mark">
-      <span></span><span></span><span></span>
-      <span></span><span></span><span></span>
-      <span></span><span></span><span></span>
-    </div>
+    <div class="brand-mark"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
     <div class="brand-name">PAMPER</div>
   </div>
-  <p>Campus Attendance System · Moneague College</p>
+  <p>Campus Attendance · Moneague College</p>
 </div>
 
-<!-- Card -->
 <div class="card">
   <div class="card-title">Student Check-In / Out</div>
-  <p class="card-sub">Enter your Student ID to record your attendance</p>
+  <p class="card-sub">Scan your QR card or enter your Student ID</p>
 
-  <!-- In / Out toggle -->
+  <!-- In / Out -->
   <div class="type-toggle">
-    <button class="type-btn in active" id="btn-type-in" onclick="setType('in')">
+    <button class="type-btn ain" id="btn-in" onclick="setType('in')">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       Check In
     </button>
-    <button class="type-btn out" id="btn-type-out" onclick="setType('out')">
+    <button class="type-btn" id="btn-out" onclick="setType('out')">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Check Out
     </button>
   </div>
 
-  <!-- ID Input -->
-  <label class="input-label" for="student-id-input">Your Student ID</label>
-  <div class="id-input-wrap">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
-    <input
-      type="text"
-      id="student-id-input"
-      placeholder="e.g. ST001"
-      maxlength="20"
-      autocomplete="off"
-      autocorrect="off"
-      spellcheck="false"
-      oninput="this.value=this.value.toUpperCase()"
-      onkeydown="if(event.key==='Enter') submitCheckin()"
-    >
+  <!-- QR / ID tabs -->
+  <div class="method-tabs">
+    <button class="mtab on" id="tab-qr" onclick="setMethod('qr')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+      Scan QR Card
+    </button>
+    <button class="mtab" id="tab-id" onclick="setMethod('id')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
+      Enter Student ID
+    </button>
   </div>
 
-  <button class="submit-btn" id="submit-btn" onclick="submitCheckin()">
-    <svg id="submit-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-    <span id="submit-label">Record Check-In</span>
-  </button>
+  <!-- QR Panel -->
+  <div class="panel show" id="panel-qr">
+    <div class="scanner-wrap">
+      <div class="corners">
+        <div class="scanline"></div>
+        <div class="c tl"></div><div class="c tr"></div>
+        <div class="c bl"></div><div class="c br"></div>
+      </div>
+      <div id="qr-reader"></div>
+    </div>
+    <p class="scan-hint">// point camera at QR card — scans automatically</p>
+  </div>
+
+  <!-- Manual ID Panel -->
+  <div class="panel" id="panel-id">
+    <label class="ilabel" for="sid">Your Student ID</label>
+    <div class="iwrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
+      <input type="text" id="sid" placeholder="e.g. ST001" maxlength="20"
+        autocomplete="off" spellcheck="false"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.key==='Enter') submitID()">
+    </div>
+    <button class="sbtn" id="sbtn" onclick="submitID()">
+      <svg id="sico" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      <span id="slbl">Record Check-In</span>
+    </button>
+  </div>
 
   <!-- Result -->
   <div class="result" id="result">
-    <div class="result-icon">
-      <svg id="result-svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
-    </div>
-    <div class="result-name" id="result-name"></div>
-    <div class="result-msg"  id="result-msg"></div>
-    <div class="result-time" id="result-time"></div>
+    <div class="rico"><svg id="rsv" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg></div>
+    <div class="rname" id="rname"></div>
+    <div class="rmsg"  id="rmsg"></div>
+    <div class="rmeta" id="rmeta"></div>
   </div>
-
-  <button class="clear-btn" id="clear-btn" onclick="resetForm()">
-    ↩ Check in another student
-  </button>
+  <button class="cbtn" id="cbtn" onclick="resetResult()">↩ Next student</button>
 </div>
 
-<!-- Recent strip -->
-<div class="recent-strip" id="recent-strip" style="display:none;">
-  <div class="recent-title">Recent activity today</div>
-  <div class="recent-list" id="recent-list"></div>
+<!-- Recent -->
+<div class="recent" id="recent" style="display:none;">
+  <div class="rtitle">Recent scans today</div>
+  <div class="rlist" id="rlist"></div>
 </div>
 
-<!-- Admin link -->
-<div class="page-footer">
-  <a href="/login">Admin / Staff Login →</a>
-  &nbsp;·&nbsp; PAMPER Beta v0.4
+<div class="footer">
+  <a href="/login">Admin / Staff Login →</a> &nbsp;·&nbsp; PAMPER Beta v0.4
 </div>
 
 <script>
-let scanType = 'in';
-const recentScans = [];
+let scanType='in', method='qr', scanning=false, qrScanner=null;
+const recentScans=[];
 
-function setType(type) {
-  scanType = type;
-
-  const btnIn  = document.getElementById('btn-type-in');
-  const btnOut = document.getElementById('btn-type-out');
-  const icon   = document.getElementById('submit-icon');
-  const label  = document.getElementById('submit-label');
-
-  if (type === 'in') {
-    btnIn.classList.add('active');
-    btnOut.classList.remove('active');
-    label.textContent = 'Record Check-In';
-    icon.innerHTML = `<path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>`;
-  } else {
-    btnOut.classList.add('active');
-    btnIn.classList.remove('active');
-    label.textContent = 'Record Check-Out';
-    icon.innerHTML = `<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>`;
-  }
-
-  resetForm();
+function setType(t){
+  scanType=t;
+  document.getElementById('btn-in').className ='type-btn'+(t==='in' ?' ain':'');
+  document.getElementById('btn-out').className='type-btn'+(t==='out'?' aout':'');
+  document.getElementById('slbl').textContent=t==='in'?'Record Check-In':'Record Check-Out';
+  document.getElementById('sico').innerHTML=t==='in'
+    ?`<path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>`
+    :`<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>`;
+  resetResult();
 }
 
-async function submitCheckin() {
-  const idInput = document.getElementById('student-id-input');
-  const id      = idInput.value.trim().toUpperCase();
+function setMethod(m){
+  method=m;
+  document.getElementById('tab-qr').classList.toggle('on',m==='qr');
+  document.getElementById('tab-id').classList.toggle('on',m==='id');
+  document.getElementById('panel-qr').classList.toggle('show',m==='qr');
+  document.getElementById('panel-id').classList.toggle('show',m==='id');
+  if(m==='qr'){ startScanner(); }
+  else{ stopScanner(); setTimeout(()=>document.getElementById('sid').focus(),120); }
+  resetResult();
+}
 
-  if (!id) {
-    idInput.focus();
-    idInput.style.borderColor = 'rgba(239,68,68,.6)';
-    setTimeout(() => idInput.style.borderColor = '', 1500);
+function startScanner(){
+  if(qrScanner) return;
+  qrScanner=new Html5QrcodeScanner('qr-reader',{fps:10,qrbox:{width:230,height:230},rememberLastUsedCamera:true,aspectRatio:1.0});
+  qrScanner.render(code=>{if(!scanning) processCheckin({qr_code:code});},()=>{});
+}
+
+function stopScanner(){
+  if(!qrScanner) return;
+  try{qrScanner.clear();}catch(e){}
+  qrScanner=null;
+}
+
+function submitID(){
+  const id=document.getElementById('sid').value.trim().toUpperCase();
+  if(!id){
+    const el=document.getElementById('sid');
+    el.style.borderColor='rgba(239,68,68,.6)';
+    el.focus();
+    setTimeout(()=>el.style.borderColor='',1500);
     return;
   }
+  processCheckin({student_id:id});
+}
 
-  const btn   = document.getElementById('submit-btn');
-  const label = document.getElementById('submit-label');
-  const icon  = document.getElementById('submit-icon');
+async function processCheckin(payload){
+  if(scanning) return;
+  scanning=true;
 
-  btn.disabled   = true;
-  icon.innerHTML = `<path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".25" stroke-width="2"/><path d="M21 12a9 9 0 00-9-9" stroke-width="2"/>`;
-  icon.classList.add('spin');
-  label.textContent = 'Recording…';
+  if(method==='id'){
+    const btn=document.getElementById('sbtn');
+    btn.disabled=true;
+    const ico=document.getElementById('sico');
+    ico.innerHTML=`<path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".25" stroke-width="2"/><path d="M21 12a9 9 0 00-9-9" stroke-width="2"/>`;
+    ico.classList.add('spin');
+    document.getElementById('slbl').textContent='Recording…';
+  }
 
-  try {
-    const res = await fetch('/api/attendance/id-checkin', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ student_id: id, scan_type: scanType })
+  try{
+    const res=await fetch('/api/attendance/id-checkin',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({...payload,scan_type:scanType})
     });
+    const data=await res.json();
 
-    const data = await res.json();
-
-    if (res.ok) {
-      showResult('ok', data.name, data.message,
-        new Date(data.scan_time).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' })
-      );
-      addRecent(data.name, data.studentId, scanType,
-        new Date(data.scan_time).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' })
-      );
-      idInput.value = '';
+    if(res.ok){
+      const t=new Date(data.scan_time).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      showResult('ok',data.name,data.message,
+        `${data.studentId||''}${data.grade?' · '+data.grade:''} · ${t} · via ${data.method==='qr'?'QR Card':'Student ID'}`);
+      addRecent(data.name,data.studentId,scanType,t,data.method==='qr');
+      if(method==='id') document.getElementById('sid').value='';
     } else {
-      const err = data.error || 'Something went wrong';
-      if (err.includes('DUPLICATE')) {
-        showResult('warn', 'Already Recorded',
-          `Student ID ${id} was already checked ${scanType === 'in' ? 'in' : 'out'} in the last 5 minutes.`, '');
-      } else if (err.includes('BLACKLISTED')) {
-        showResult('err', 'Account Suspended',
-          'This account is suspended. Please contact administration.', '');
-      } else if (err.includes('OUTSIDE_HOURS')) {
-        showResult('warn', 'Outside Check-in Hours', data.message || err, '');
-      } else if (err.includes('not found')) {
-        showResult('err', `ID "${id}" Not Found`,
-          'This Student ID is not registered in the system. Please check and try again.', '');
-      } else {
-        showResult('err', 'Check-in Failed', err, '');
-      }
+      const e=data.error||'';
+      if(e.includes('DUPLICATE'))      showResult('warn','Already Recorded',data.message||e,'');
+      else if(e.includes('BLACKLISTED')) showResult('err','Account Suspended','Contact administration.','');
+      else if(e.includes('OUTSIDE_HOURS')) showResult('warn','Outside Hours',data.message||e,'');
+      else if(e.includes('not found')||e.includes('not recognised')) showResult('err','Not Found',e,'');
+      else if(e.includes('disabled'))  showResult('warn','Disabled',e,'');
+      else                             showResult('err','Failed',e||'Something went wrong.','');
     }
-  } catch(e) {
-    showResult('err', 'Connection Error',
-      'Could not reach the server. Make sure the app is running and try again.', '');
+  } catch(e){
+    showResult('err','Connection Error','Could not reach the server. Please try again.','');
   } finally {
-    btn.disabled = false;
-    icon.classList.remove('spin');
-    // Restore icon based on type
-    setType(scanType);
-    btn.disabled = false;
+    if(method==='id'){
+      const btn=document.getElementById('sbtn');
+      btn.disabled=false;
+      document.getElementById('sico').classList.remove('spin');
+      setType(scanType);
+    }
+    setTimeout(()=>{scanning=false;},3000);
   }
 }
 
-function showResult(type, name, msg, time) {
-  const result = document.getElementById('result');
-  const svg    = document.getElementById('result-svg');
+const ICONS={
+  ok: `<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>`,
+  err:`<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>`,
+  warn:`<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`
+};
 
-  result.className = `result show ${type}`;
-  document.getElementById('result-name').textContent = name;
-  document.getElementById('result-msg').textContent  = msg;
-  document.getElementById('result-time').textContent = time;
-
-  const icons = {
-    ok:   `<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>`,
-    err:  `<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>`,
-    warn: `<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`
-  };
-  svg.innerHTML = icons[type] || icons.err;
-
-  document.getElementById('clear-btn').classList.add('show');
-
-  // Auto-reset after 6 seconds on success
-  if (type === 'ok') setTimeout(resetForm, 6000);
+function showResult(type,name,msg,meta){
+  const el=document.getElementById('result');
+  el.className=`result show ${type}`;
+  document.getElementById('rsv').innerHTML=ICONS[type];
+  document.getElementById('rname').textContent=name;
+  document.getElementById('rmsg').textContent=msg;
+  document.getElementById('rmeta').textContent=meta;
+  document.getElementById('cbtn').classList.add('show');
+  if(type==='ok') setTimeout(resetResult,7000);
 }
 
-function resetForm() {
-  const result = document.getElementById('result');
-  result.className = 'result';
-  document.getElementById('clear-btn').classList.remove('show');
-  document.getElementById('student-id-input').value = '';
-  document.getElementById('student-id-input').focus();
+function resetResult(){
+  document.getElementById('result').className='result';
+  document.getElementById('cbtn').classList.remove('show');
+  if(method==='id'){document.getElementById('sid').value='';document.getElementById('sid').focus();}
 }
 
-function addRecent(name, studentId, type, time) {
-  recentScans.unshift({ name, studentId, type, time });
-  if (recentScans.length > 5) recentScans.pop();
-
-  const strip = document.getElementById('recent-strip');
-  const list  = document.getElementById('recent-list');
-  strip.style.display = '';
-
-  list.innerHTML = recentScans.map(s => `
-    <div class="recent-item">
-      <div>
-        <div class="recent-item-name">${s.name}</div>
-        <div class="recent-item-meta">${s.studentId} · ${s.time}</div>
-      </div>
-      <span class="recent-item-badge ${s.type === 'in' ? 'badge-in' : 'badge-out'}">
-        ${s.type === 'in' ? 'IN' : 'OUT'}
-      </span>
+function addRecent(name,sid,type,time,isQR){
+  recentScans.unshift({name,sid,type,time,isQR});
+  if(recentScans.length>5) recentScans.pop();
+  document.getElementById('recent').style.display='';
+  document.getElementById('rlist').innerHTML=recentScans.map(s=>`
+    <div class="ritem">
+      <div><div class="riname">${s.name}</div><div class="rimeta">${s.sid||''} · ${s.time}</div></div>
+      <div>${s.isQR?'<span class="bdg bqr">QR</span>':''}<span class="bdg ${s.type==='in'?'bin':'bout'}">${s.type==='in'?'IN':'OUT'}</span></div>
     </div>`).join('');
 }
 
-// Auto-focus on load
-window.addEventListener('load', () => {
-  document.getElementById('student-id-input').focus();
-});
+window.addEventListener('load',()=>{setType('in');startScanner();});
 </script>
 </body>
 </html>

@@ -81,6 +81,22 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
   res.json({ success: true });
 });
 
+// POST /api/users/:id/reset-password – admin resets any user's password
+router.post('/:id/reset-password', requireRole('admin'), async (req, res) => {
+  const { new_password } = req.body;
+  if (!new_password || new_password.length < 8)
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+  const hash = await bcrypt.hash(new_password, 12);
+  const { error } = await supabase
+    .from('users')
+    .update({ password_hash: hash, updated_at: new Date() })
+    .eq('id', req.params.id);
+
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true, message: 'Password reset successfully' });
+});
+
 // POST /api/users/:id/blacklist – blacklist/unblacklist
 router.post('/:id/blacklist', requireRole('admin'), async (req, res) => {
   const { blacklist, reason } = req.body;

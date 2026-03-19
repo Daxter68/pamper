@@ -133,65 +133,75 @@ router.post('/scan', requireRole('admin', 'security'), async (req, res) => {
   });
 });
 
-// POST /api/attendance/id-checkin – public endpoint, no login required
-// Student enters their student_id (e.g. ST001) to check in or out
+// POST /api/attendance/id-checkin – public, no login required
+// Accepts student_id (e.g. ST001) OR qr_code (UUID from QR card)
 router.post('/id-checkin', async (req, res) => {
-  const { student_id, scan_type = 'in' } = req.body;
+  const { student_id, qr_code, scan_type = 'in' } = req.body;
+  const usingQR = !!(qr_code && qr_code.trim());
+  const usingID = !!(student_id && student_id.trim());
 
-  if (!student_id || !student_id.trim())
-    return res.status(400).json({ error: 'Student ID is required' });
+  if (!usingQR && !usingID)
+    return res.status(400).json({ error: 'Student ID or QR code is required.' });
 
-  // Look up student by student_id field
-  const { data: student, error } = await supabase
+  // Look up student — by qr_code UUID or by student_id
+  let query = supabase
     .from('users')
-    .select('id, full_name, student_id, grade, is_blacklisted, qr_status, role')
-    .eq('student_id', student_id.trim().toUpperCase())
-    .eq('role', 'student')
-    .single();
+    .select('id, full_name, student_id, grade, is_blacklisted, qr_status, role, qr_code');
+
+  if (usingQR) {
+    query = query.eq('qr_code', qr_code.trim());
+  } else {
+    query = query
+      .eq('student_id', student_id.trim().toUpperCase())
+      .eq('role', 'student');
+  }
+
+  const { data: student, error } = await query.single();
 
   if (error || !student)
     return res.status(404).json({
-      error: 'Student ID not found. Please check your ID and try again.'
+      error: usingQR
+        ? 'QR code not recognised. Please try entering your Student ID instead.'
+        : 'Student ID not found. Please check your ID and try again.'
     });
+
+  if (student.role !== 'student')
+    return res.status(400).json({ error: 'This ID does not belong to a student account.' });
 
   if (student.is_blacklisted)
     return res.status(403).json({
-      error: 'BLACKLISTED',
+      error:   'BLACKLISTED',
       message: 'This account is suspended. Contact administration.'
     });
 
-  // Auto-activate QR if pending/null
+  // Auto-activate if pending or null
   if (!student.qr_status || student.qr_status === 'pending') {
-    await supabase
-      .from('users')
-      .update({ qr_status: 'active' })
-      .eq('id', student.id);
+    await supabase.from('users').update({ qr_status: 'active' }).eq('id', student.id);
+    student.qr_status = 'active';
   }
 
-  // Load campus settings — fail open if table missing
+  if (student.qr_status === 'revoked')
+    return res.status(400).json({ error: 'This QR code has been revoked. Please see administration.' });
+
+  // Campus settings
   const campus = await getCampusSettings();
 
   if (!campus.selfCheckin)
-    return res.status(403).json({
-      error: 'Self check-in is currently disabled. Please see security personnel.'
-    });
+    return res.status(403).json({ error: 'Self check-in is currently disabled. Please see security personnel.' });
 
   // Hours check (Jamaica time)
-  const nowJamaica = new Date(
-    new Date().toLocaleString('en-US', { timeZone: 'America/Jamaica' })
-  );
-  const nowMins   = nowJamaica.getHours() * 60 + nowJamaica.getMinutes();
-  const [sh, sm]  = campus.checkinStart.split(':').map(Number);
-  const [eh, em]  = campus.checkinEnd.split(':').map(Number);
+  const nowJamaica = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Jamaica' }));
+  const nowMins    = nowJamaica.getHours() * 60 + nowJamaica.getMinutes();
+  const [sh, sm]   = campus.checkinStart.split(':').map(Number);
+  const [eh, em]   = campus.checkinEnd.split(':').map(Number);
 
-  if (nowMins < sh * 60 + sm || nowMins > eh * 60 + em) {
+  if (nowMins < sh * 60 + sm || nowMins > eh * 60 + em)
     return res.status(403).json({
-      error: 'OUTSIDE_HOURS',
+      error:   'OUTSIDE_HOURS',
       message: `Check-in is only available between ${campus.checkinStart} and ${campus.checkinEnd}.`
     });
-  }
 
-  // Duplicate check — 5 minute window
+  // Duplicate check (5 min)
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const { data: recent } = await supabase
     .from('attendance_logs')
@@ -203,18 +213,18 @@ router.post('/id-checkin', async (req, res) => {
 
   if (recent && recent.length > 0)
     return res.status(409).json({
-      error: 'DUPLICATE',
+      error:   'DUPLICATE',
       message: `Already checked ${scan_type === 'in' ? 'in' : 'out'} in the last 5 minutes.`
     });
 
-  // Record attendance
+  // Record
   const { data: log, error: logErr } = await supabase
     .from('attendance_logs')
     .insert({
       student_id: student.id,
       scanned_by: student.id,
       scan_type,
-      location:   'Student Self Check-in',
+      location:   usingQR ? 'QR Card Scan' : 'Student ID Entry',
       date:       new Date().toISOString().split('T')[0]
     })
     .select()
@@ -230,6 +240,7 @@ router.post('/id-checkin', async (req, res) => {
     studentId: student.student_id,
     grade:     student.grade,
     scan_time: log.scan_time,
+    method:    usingQR ? 'qr' : 'id',
     message:   scan_type === 'in'
       ? `Welcome, ${student.full_name.split(' ')[0]}! You are checked in.`
       : `Goodbye, ${student.full_name.split(' ')[0]}! You are checked out.`
