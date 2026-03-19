@@ -272,34 +272,21 @@ function setModelNotice(ok, msg) {
   document.getElementById('face-model-txt').innerHTML = msg;
 }
 
-// Load all enrolled face descriptors from the server
+// Load all enrolled face descriptors — uses public endpoint, no auth needed
 async function loadEnrolledDescriptors() {
   try {
-    // Get all students
-    const res = await fetch('/api/users?role=student&limit=500', { credentials: 'include' });
+    const res  = await fetch('/api/face/all-descriptors');
     const data = await res.json();
-    const students = data.data || [];
 
-    // Fetch each enrolled face in parallel
-    const results = await Promise.allSettled(
-      students.map(async s => {
-        try {
-          const r = await fetch(`/api/face/${s.id}`, { credentials: 'include' });
-          if (!r.ok) return null;
-          const fd = await r.json();
-          return {
-            userId:    s.id,
-            studentId: s.student_id,
-            name:      s.full_name,
-            descriptor: new Float32Array(fd.descriptor)
-          };
-        } catch(e) { return null; }
-      })
-    );
+    if (!res.ok) throw new Error(data.error || 'Failed to load descriptors');
 
-    enrolledDescriptors = results
-      .filter(r => r.status === 'fulfilled' && r.value !== null)
-      .map(r => r.value);
+    enrolledDescriptors = (data.descriptors || []).map(d => ({
+      userId:     d.userId,
+      studentId:  d.studentId,
+      name:       d.name,
+      grade:      d.grade,
+      descriptor: new Float32Array(d.descriptor)
+    }));
 
     console.log(`[Face] Loaded ${enrolledDescriptors.length} enrolled descriptors`);
   } catch(e) {

@@ -3,6 +3,34 @@ const supabase = require('../config/supabase');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
+
+// ── PUBLIC endpoint — checkin page needs this without auth ──────
+// GET /api/face/all-descriptors – returns all enrolled face descriptors
+// Only returns descriptors (128 numbers) + student info — no sensitive data
+router.get('/all-descriptors', async (req, res) => {
+  try {
+    // Join face_descriptors with users to get student info
+    const { data, error } = await supabase
+      .from('face_descriptors')
+      .select('user_id, descriptor, users!face_descriptors_user_id_fkey(full_name, student_id, grade)');
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    const descriptors = (data || []).map(row => ({
+      userId:    row.user_id,
+      name:      row.users?.full_name || 'Unknown',
+      studentId: row.users?.student_id || null,
+      grade:     row.users?.grade || null,
+      descriptor: JSON.parse(row.descriptor)
+    }));
+
+    res.json({ count: descriptors.length, descriptors });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── All routes below require authentication ─────────────────────
 router.use(requireAuth);
 
 // POST /api/face/enrol – save a student's face descriptor
