@@ -198,6 +198,8 @@
           <!-- Self check-in (optional — if campus allows self-scan) -->
           <div class="checkin-section">
             <h3>Manual Check-in</h3>
+            <p id="location-badge" style="font-size:11.5px;color:var(--muted);margin-bottom:12px;font-family:var(--mono);">📍 Loading location settings…</p>
+            <div id="debug-panel" style="margin-bottom:12px;"></div>
             <div id="scan-result" class="scan-result">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="scan-ico"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
               <div class="scan-result-text">
@@ -309,6 +311,10 @@ function injectStudentSidebar(user) {
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           Home
         </a>
+        <a class="nav-a" href="/checkin" target="_blank">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Check In / Out
+        </a>
         <a class="nav-a" href="/profile">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
           My Profile
@@ -340,11 +346,24 @@ function injectStudentSidebar(user) {
 let currentUser = null;
 
 async function init() {
-  // Auth guard — students only
-  currentUser = await initAuth(['student']);
-  if (!currentUser) return;
+  // Fetch current user directly — don't use initAuth which has DOM side-effects
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include' });
+    if (!res.ok) { window.location.href = '/login'; return; }
+    const data = await res.json();
+    currentUser = data.user;
+  } catch(e) {
+    window.location.href = '/login';
+    return;
+  }
 
-  // Inject student sidebar
+  // Role guard
+  if (!currentUser || currentUser.role !== 'student') {
+    window.location.href = '/dashboard';
+    return;
+  }
+
+  // Inject student sidebar now that we have the user
   injectStudentSidebar(currentUser);
 
   // Set date
@@ -360,20 +379,50 @@ async function init() {
   // Render QR code
   if (currentUser.qrCode) {
     document.getElementById('qr-text').textContent = currentUser.qrCode;
-    new QRCode(document.getElementById('qr-canvas'), {
-      text:         currentUser.qrCode,
-      width:        180,
-      height:       180,
-      correctLevel: QRCode.CorrectLevel.M
-    });
+    try {
+      new QRCode(document.getElementById('qr-canvas'), {
+        text:         currentUser.qrCode,
+        width:        180,
+        height:       180,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {
+      document.getElementById('qr-canvas').textContent = currentUser.qrCode;
+    }
   } else {
     document.getElementById('qr-canvas').innerHTML =
-      '<div style="width:180px;height:180px;border:2px dashed rgba(14,138,124,.3);border-radius:10px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:13px;margin:0 auto;">No QR assigned</div>';
+      '<div style="width:180px;height:180px;border:2px dashed rgba(14,138,124,.3);border-radius:10px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:13px;margin:0 auto;padding:12px;text-align:center;">No QR code assigned.<br>Contact admin.</div>';
   }
 
-  // Load attendance data and campus settings together
+  // Load everything in parallel
   loadCampusSettings();
   loadAttendance();
+  runDebugCheck();
+}
+
+// ── Debug check — shows exactly why check-in might fail ────────
+async function runDebugCheck() {
+  try {
+    const d = await api.get('/api/attendance/debug-scan');
+    const panel = document.getElementById('debug-panel');
+    if (!panel) return;
+
+    if (d.would_succeed) {
+      panel.innerHTML = `<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:9px;padding:10px 14px;font-size:12.5px;color:var(--green);display:flex;align-items:center;gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        ✓ Check-in system is ready. Press a button above to check in or out.
+      </div>`;
+    } else {
+      const blockerList = d.blockers.map(b => `<li style="margin-bottom:4px;">⚠ ${b}</li>`).join('');
+      panel.innerHTML = `<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:9px;padding:12px 14px;font-size:12.5px;color:#fca5a5;">
+        <strong style="display:block;margin-bottom:6px;">Check-in blocked — reasons:</strong>
+        <ul style="padding-left:16px;">${blockerList}</ul>
+        <div style="margin-top:8px;font-size:11px;opacity:.7;">QR status: ${d.qr_status} | Time: ${d.current_time_jamaica} | Hours: ${d.checkin_start}–${d.checkin_end}</div>
+      </div>`;
+    }
+  } catch(e) {
+    console.warn('Debug check failed:', e.message);
+  }
 }
 
 // ── Load attendance history ─────────────────────────────────────
@@ -451,41 +500,57 @@ function renderAttendanceTable(records) {
   }).join('');
 }
 
-// ── Geofence check then self-scan ──────────────────────────────
+// ── Campus settings + GPS helpers ──────────────────────────────
 let campusSettings = null;
 
 async function loadCampusSettings() {
   try {
     campusSettings = await api.get('/api/campus/geofence');
+    updateLocationBadge();
   } catch(e) {
-    console.warn('Could not load campus settings:', e.message);
+    // Can't load settings — allow check-in anyway, server will validate
+    campusSettings = { enabled: false, self_checkin: true };
+  }
+}
+
+function updateLocationBadge() {
+  const badge = document.getElementById('location-badge');
+  if (!badge) return;
+  if (!campusSettings?.enabled) {
+    badge.textContent = '📍 Location check: Off';
+    badge.style.color = 'var(--muted)';
+  } else {
+    badge.textContent = `📍 Must be within ${campusSettings.radius}m of campus`;
+    badge.style.color = 'var(--teal-light)';
   }
 }
 
 async function getGPSPosition() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error('GPS is not supported by your browser.'));
+      reject(new Error('GPS not supported by your browser.'));
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
       err => {
         const msgs = {
-          1: 'Location access was denied. Please allow location permission and try again.',
-          2: 'Your location could not be determined. Make sure GPS is turned on.',
+          1: 'Location access denied. Please allow location permission in your browser settings and try again.',
+          2: 'Location unavailable. Make sure GPS is turned on.',
           3: 'Location request timed out. Please try again.'
         };
-        reject(new Error(msgs[err.code] || 'Location error'));
+        reject(new Error(msgs[err.code] || 'Could not get your location.'));
       },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
   });
 }
 
+// ── Main check-in / check-out function ─────────────────────────
 async function doScan(type) {
-  if (!currentUser?.qrCode) {
-    showScanResult('err', 'No QR Code', 'Your QR code has not been assigned yet. Contact admin.');
+  // Safety check — should never happen but catches any timing issues
+  if (!currentUser) {
+    toast('Not signed in', 'Please refresh the page and try again', 'err');
     return;
   }
 
@@ -494,38 +559,43 @@ async function doScan(type) {
   btnIn.disabled  = true;
   btnOut.disabled = true;
 
-  // Update button text to show progress
-  const activeBtn = type === 'in' ? btnIn : btnOut;
-  const origHTML  = activeBtn.innerHTML;
-  activeBtn.innerHTML = `<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".25"/><path d="M21 12a9 9 0 00-9-9"/></svg> Getting location…`;
+  const activeBtn  = type === 'in' ? btnIn : btnOut;
+  const origHTML   = activeBtn.innerHTML;
 
   try {
     let latitude  = null;
     let longitude = null;
 
-    // Only request GPS if geofence is enabled
-    if (!campusSettings || campusSettings.enabled) {
+    // Get GPS if geofence is enabled or if settings not loaded yet
+    const needsGPS = !campusSettings || campusSettings.enabled;
+
+    if (needsGPS) {
+      activeBtn.innerHTML = `<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".25"/><path d="M21 12a9 9 0 00-9-9"/></svg> Getting location…`;
+
       try {
         const pos = await getGPSPosition();
         latitude  = pos.latitude;
         longitude = pos.longitude;
       } catch(gpsErr) {
-        showScanResult('err', 'Location Required', gpsErr.message);
-        toast('Location needed', gpsErr.message, 'err');
-        btnIn.disabled  = false;
-        btnOut.disabled = false;
-        activeBtn.innerHTML = origHTML;
-        return;
+        // If geofence is definitely disabled, proceed without GPS
+        if (campusSettings && !campusSettings.enabled) {
+          latitude  = null;
+          longitude = null;
+        } else {
+          showScanResult('err', 'Location Needed', gpsErr.message);
+          toast('Location required', gpsErr.message, 'err');
+          return;
+        }
       }
     }
 
-    activeBtn.innerHTML = `<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".25"/><path d="M21 12a9 9 0 00-9-9"/></svg> Checking in…`;
+    activeBtn.innerHTML = `<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".25"/><path d="M21 12a9 9 0 00-9-9"/></svg> ${type === 'in' ? 'Checking in…' : 'Checking out…'}`;
 
-    const res = await api.post('/api/attendance/self-scan', {
-      scan_type: type,
-      latitude,
-      longitude
-    });
+    const body = { scan_type: type };
+    if (latitude  != null) body.latitude  = latitude;
+    if (longitude != null) body.longitude = longitude;
+
+    const res = await api.post('/api/attendance/self-scan', body);
 
     const timeStr = formatTime(res.scan_time);
     showScanResult(
@@ -533,43 +603,43 @@ async function doScan(type) {
       type === 'in' ? `Checked In at ${timeStr}` : `Checked Out at ${timeStr}`,
       `Recorded successfully. Have a great ${type === 'in' ? 'day' : 'evening'}!`
     );
-    toast(
-      type === 'in' ? 'Checked In ✓' : 'Checked Out ✓',
-      `Recorded at ${timeStr}`,
-      'ok'
-    );
+    toast(type === 'in' ? 'Checked In ✓' : 'Checked Out ✓', `Recorded at ${timeStr}`, 'ok');
     loadAttendance();
 
   } catch(e) {
-    const msg = e.message;
+    const msg = e.message || '';
+
     if (msg.includes('OUT_OF_BOUNDS') || msg.includes('metres from campus')) {
       showScanResult('err', 'Not on Campus', msg);
       toast('Outside campus boundary', msg, 'err');
     } else if (msg.includes('OUTSIDE_HOURS')) {
-      showScanResult('err', 'Outside Check-in Hours', msg.replace('OUTSIDE_HOURS: ',''));
-      toast('Outside hours', msg, 'warn');
+      showScanResult('err', 'Outside Check-in Hours', msg.replace('OUTSIDE_HOURS: ', ''));
+      toast('Outside hours', 'Check-in not available right now', 'warn');
     } else if (msg.includes('LOCATION_REQUIRED')) {
-      showScanResult('err', 'Location Required', 'Please allow location access to check in.');
+      showScanResult('err', 'Location Required', 'Please allow location access in your browser and try again.');
       toast('Location required', 'Enable GPS and try again', 'err');
     } else if (msg.includes('disabled')) {
-      showScanResult('err', 'Self Check-in Disabled', msg);
+      showScanResult('err', 'Self Check-in Disabled', 'Please see security personnel to record your attendance.');
       toast('Disabled', msg, 'warn');
     } else if (msg.includes('DUPLICATE')) {
-      showScanResult('err', 'Already Recorded', `You already checked ${type === 'in' ? 'in' : 'out'} recently.`);
+      showScanResult('err', 'Already Recorded', `You already checked ${type === 'in' ? 'in' : 'out'} recently. Try again in 5 minutes.`);
       toast('Already recorded', 'Duplicate scan within 5 minutes', 'warn');
     } else if (msg.includes('BLACKLISTED')) {
-      showScanResult('err', 'Account Suspended', 'Contact administration.');
+      showScanResult('err', 'Account Suspended', 'Contact administration immediately.');
       toast('Account suspended', 'Contact administration', 'err');
+    } else if (msg.includes('QR code is')) {
+      showScanResult('err', 'QR Code Issue', msg);
+      toast('QR Code inactive', 'Contact admin to reactivate', 'warn');
     } else {
-      showScanResult('err', 'Check-in Failed', msg);
-      toast('Failed', msg, 'err');
+      showScanResult('err', 'Check-in Failed', msg || 'Something went wrong. Please try again.');
+      toast('Failed', msg || 'Unknown error', 'err');
     }
   } finally {
     setTimeout(() => {
       btnIn.disabled  = false;
       btnOut.disabled = false;
       activeBtn.innerHTML = origHTML;
-    }, 3000);
+    }, 2500);
   }
 }
 

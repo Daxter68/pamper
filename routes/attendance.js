@@ -7,7 +7,7 @@ router.use(requireAuth);
 
 // ── Haversine distance calculator (metres between two GPS coords) ──
 function haversineDistance(lat1, lng1, lat2, lng2) {
-  const R = 6371000; // Earth radius in metres
+  const R = 6371000;
   const toRad = d => d * Math.PI / 180;
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
@@ -16,45 +16,61 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// ── Fetch campus geofence settings helper ─────────────────────────
+// ── Fetch campus geofence settings — gracefully returns permissive defaults ──
 async function getCampusSettings() {
-  const { data } = await supabase
-    .from('campus_settings')
-    .select('key, value')
-    .in('key', [
-      'geofence_enabled','geofence_lat','geofence_lng',
-      'geofence_radius','self_checkin','checkin_start','checkin_end'
-    ]);
-  const s = {};
-  (data || []).forEach(r => { s[r.key] = r.value; });
-  return {
-    enabled:      s.geofence_enabled !== 'false',
-    lat:          parseFloat(s.geofence_lat)  || 18.2706,
-    lng:          parseFloat(s.geofence_lng)  || -77.1270,
-    radius:       parseInt(s.geofence_radius) || 300,
-    selfCheckin:  s.self_checkin !== 'false',
-    checkinStart: s.checkin_start || '07:00',
-    checkinEnd:   s.checkin_end   || '18:00'
-  };
+  try {
+    const { data, error } = await supabase
+      .from('campus_settings')
+      .select('key, value')
+      .in('key', [
+        'geofence_enabled','geofence_lat','geofence_lng',
+        'geofence_radius','self_checkin','checkin_start','checkin_end'
+      ]);
+
+    if (error || !data || data.length === 0) {
+      // Table doesn't exist yet or is empty — allow self check-in with no geofence
+      return { enabled: false, lat: 18.2706, lng: -77.1270, radius: 300,
+               selfCheckin: true, checkinStart: '00:00', checkinEnd: '23:59' };
+    }
+
+    const s = {};
+    data.forEach(r => { s[r.key] = r.value; });
+
+    return {
+      enabled:      s.geofence_enabled === 'true',
+      lat:          parseFloat(s.geofence_lat)  || 18.2706,
+      lng:          parseFloat(s.geofence_lng)  || -77.1270,
+      radius:       parseInt(s.geofence_radius) || 300,
+      selfCheckin:  s.self_checkin !== 'false',   // default true
+      checkinStart: s.checkin_start || '00:00',
+      checkinEnd:   s.checkin_end   || '23:59'
+    };
+  } catch {
+    // Any error — fail open so students aren't locked out
+    return { enabled: false, lat: 18.2706, lng: -77.1270, radius: 300,
+             selfCheckin: true, checkinStart: '00:00', checkinEnd: '23:59' };
+  }
 }
 
-// ── Shared scan logic (used by both staff scan and student self-scan) ──
-async function recordScan(studentId, scannedBy, scanType, location, res) {
+// ── Shared scan logic ─────────────────────────────────────────────
+// Returns { log } on success, or { error, status } on failure
+async function recordScan(studentId, scannedBy, scanType, location) {
   // Duplicate check (5 min window)
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const { data: recent } = await supabase
     .from('attendance_logs')
-    .select('id, scan_type, scan_time')
+    .select('id')
     .eq('student_id', studentId)
     .eq('scan_type', scanType)
     .gte('scan_time', fiveMinAgo)
     .limit(1);
 
   if (recent && recent.length > 0) {
-    return res.status(409).json({
-      error: 'DUPLICATE',
+    return {
+      error:  'DUPLICATE',
+      status: 409,
       message: `Already recorded ${scanType === 'in' ? 'check-in' : 'check-out'} in the last 5 minutes`
-    });
+    };
   }
 
   const { data: log, error: logErr } = await supabase
@@ -69,8 +85,8 @@ async function recordScan(studentId, scannedBy, scanType, location, res) {
     .select()
     .single();
 
-  if (logErr) return res.status(500).json({ error: logErr.message });
-  return log;
+  if (logErr) return { error: logErr.message, status: 500 };
+  return { log };
 }
 
 // POST /api/attendance/scan – staff/admin scan (no geofence required)
@@ -92,11 +108,11 @@ router.post('/scan', requireRole('admin', 'security'), async (req, res) => {
 
   if (student.is_blacklisted) {
     await supabase.from('security_alerts').insert({
-      alert_type:  'blacklist_scan',
-      user_id:     student.id,
+      alert_type:   'blacklist_scan',
+      user_id:      student.id,
       triggered_by: req.user.id,
-      description: `Blacklisted student attempted scan: ${student.full_name}`,
-      severity:    'high'
+      description:  `Blacklisted student attempted scan: ${student.full_name}`,
+      severity:     'high'
     });
     return res.status(403).json({
       error: 'BLACKLISTED',
@@ -107,17 +123,173 @@ router.post('/scan', requireRole('admin', 'security'), async (req, res) => {
   if (student.qr_status !== 'active')
     return res.status(400).json({ error: `QR code is ${student.qr_status} – cannot scan` });
 
-  const log = await recordScan(student.id, req.user.id, scan_type, location, res);
-  if (!log || log.headersSent) return; // error already sent
+  const result = await recordScan(student.id, req.user.id, scan_type, location);
+  if (result.error) return res.status(result.status).json({ error: result.error, message: result.message });
 
   res.json({
     success: true, scan_type,
     student: { id: student.id, name: student.full_name, studentId: student.student_id, grade: student.grade },
-    scan_time: log.scan_time
+    scan_time: result.log.scan_time
   });
 });
 
-// POST /api/attendance/self-scan – student scans their own QR with geofence check
+// POST /api/attendance/id-checkin – public endpoint, no login required
+// Student enters their student_id (e.g. ST001) to check in or out
+router.post('/id-checkin', async (req, res) => {
+  const { student_id, scan_type = 'in' } = req.body;
+
+  if (!student_id || !student_id.trim())
+    return res.status(400).json({ error: 'Student ID is required' });
+
+  // Look up student by student_id field
+  const { data: student, error } = await supabase
+    .from('users')
+    .select('id, full_name, student_id, grade, is_blacklisted, qr_status, role')
+    .eq('student_id', student_id.trim().toUpperCase())
+    .eq('role', 'student')
+    .single();
+
+  if (error || !student)
+    return res.status(404).json({
+      error: 'Student ID not found. Please check your ID and try again.'
+    });
+
+  if (student.is_blacklisted)
+    return res.status(403).json({
+      error: 'BLACKLISTED',
+      message: 'This account is suspended. Contact administration.'
+    });
+
+  // Auto-activate QR if pending/null
+  if (!student.qr_status || student.qr_status === 'pending') {
+    await supabase
+      .from('users')
+      .update({ qr_status: 'active' })
+      .eq('id', student.id);
+  }
+
+  // Load campus settings — fail open if table missing
+  const campus = await getCampusSettings();
+
+  if (!campus.selfCheckin)
+    return res.status(403).json({
+      error: 'Self check-in is currently disabled. Please see security personnel.'
+    });
+
+  // Hours check (Jamaica time)
+  const nowJamaica = new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'America/Jamaica' })
+  );
+  const nowMins   = nowJamaica.getHours() * 60 + nowJamaica.getMinutes();
+  const [sh, sm]  = campus.checkinStart.split(':').map(Number);
+  const [eh, em]  = campus.checkinEnd.split(':').map(Number);
+
+  if (nowMins < sh * 60 + sm || nowMins > eh * 60 + em) {
+    return res.status(403).json({
+      error: 'OUTSIDE_HOURS',
+      message: `Check-in is only available between ${campus.checkinStart} and ${campus.checkinEnd}.`
+    });
+  }
+
+  // Duplicate check — 5 minute window
+  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { data: recent } = await supabase
+    .from('attendance_logs')
+    .select('id')
+    .eq('student_id', student.id)
+    .eq('scan_type', scan_type)
+    .gte('scan_time', fiveMinAgo)
+    .limit(1);
+
+  if (recent && recent.length > 0)
+    return res.status(409).json({
+      error: 'DUPLICATE',
+      message: `Already checked ${scan_type === 'in' ? 'in' : 'out'} in the last 5 minutes.`
+    });
+
+  // Record attendance
+  const { data: log, error: logErr } = await supabase
+    .from('attendance_logs')
+    .insert({
+      student_id: student.id,
+      scanned_by: student.id,
+      scan_type,
+      location:   'Student Self Check-in',
+      date:       new Date().toISOString().split('T')[0]
+    })
+    .select()
+    .single();
+
+  if (logErr)
+    return res.status(500).json({ error: 'Failed to record attendance. Please try again.' });
+
+  res.json({
+    success:   true,
+    scan_type,
+    name:      student.full_name,
+    studentId: student.student_id,
+    grade:     student.grade,
+    scan_time: log.scan_time,
+    message:   scan_type === 'in'
+      ? `Welcome, ${student.full_name.split(' ')[0]}! You are checked in.`
+      : `Goodbye, ${student.full_name.split(' ')[0]}! You are checked out.`
+  });
+});
+
+
+router.get('/debug-scan', requireRole('student'), async (req, res) => {
+  const checks = {};
+
+  // 1. Check student record
+  const { data: student, error: findErr } = await supabase
+    .from('users')
+    .select('id, full_name, student_id, qr_code, is_blacklisted, qr_status, grade, role')
+    .eq('id', req.user.id)
+    .single();
+
+  checks.student_found    = !findErr && !!student;
+  checks.role             = student?.role;
+  checks.qr_code          = student?.qr_code || null;
+  checks.qr_status        = student?.qr_status || null;
+  checks.is_blacklisted   = student?.is_blacklisted || false;
+  checks.qr_status_ok     = student?.qr_status === 'active';
+
+  // 2. Campus settings
+  const campus = await getCampusSettings();
+  checks.campus_settings_loaded = true;
+  checks.self_checkin_enabled   = campus.selfCheckin;
+  checks.geofence_enabled       = campus.enabled;
+  checks.geofence_radius        = campus.radius;
+  checks.checkin_start          = campus.checkinStart;
+  checks.checkin_end            = campus.checkinEnd;
+
+  // 3. Hours check
+  const nowJamaica = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Jamaica' }));
+  const nowMins    = nowJamaica.getHours() * 60 + nowJamaica.getMinutes();
+  const [sh, sm]   = campus.checkinStart.split(':').map(Number);
+  const [eh, em]   = campus.checkinEnd.split(':').map(Number);
+  checks.current_time_jamaica = nowJamaica.toTimeString().slice(0,5);
+  checks.current_mins         = nowMins;
+  checks.start_mins           = sh * 60 + sm;
+  checks.end_mins             = eh * 60 + em;
+  checks.within_hours         = nowMins >= (sh*60+sm) && nowMins <= (eh*60+em);
+
+  // 4. Overall verdict
+  const blockers = [];
+  if (!checks.student_found)        blockers.push('Student record not found');
+  if (!checks.qr_status_ok)         blockers.push(`QR status is "${checks.qr_status}" — must be "active"`);
+  if (checks.is_blacklisted)        blockers.push('Account is blacklisted');
+  if (!checks.self_checkin_enabled) blockers.push('Self check-in is disabled in campus settings');
+  if (!checks.within_hours)         blockers.push(`Outside check-in hours (now: ${checks.current_time_jamaica}, allowed: ${campus.checkinStart}–${campus.checkinEnd})`);
+
+  checks.blockers         = blockers;
+  checks.would_succeed    = blockers.length === 0;
+  checks.note             = 'Geofence check requires GPS coords — not tested here';
+
+  res.json(checks);
+});
+
+// POST /api/attendance/self-scan – student self check-in with optional geofence
 router.post('/self-scan', requireRole('student'), async (req, res) => {
   const { scan_type = 'in', latitude, longitude } = req.body;
 
@@ -132,38 +304,54 @@ router.post('/self-scan', requireRole('student'), async (req, res) => {
     return res.status(404).json({ error: 'Student account not found' });
 
   if (student.is_blacklisted)
-    return res.status(403).json({ error: 'BLACKLISTED', message: 'Your account is suspended. Contact administration.' });
+    return res.status(403).json({
+      error: 'BLACKLISTED',
+      message: 'Your account is suspended. Contact administration.'
+    });
 
-  if (student.qr_status !== 'active')
-    return res.status(400).json({ error: `Your QR code is ${student.qr_status}. Contact admin to reactivate.` });
+  // Auto-fix: if qr_status is null/undefined, set it to active
+  if (!student.qr_status || student.qr_status === 'pending') {
+    await supabase
+      .from('users')
+      .update({ qr_status: 'active', updated_at: new Date() })
+      .eq('id', student.id);
+    student.qr_status = 'active';
+  }
 
-  // Load campus settings
+  if (student.qr_status === 'revoked')
+    return res.status(400).json({
+      error: 'Your QR code has been revoked. Contact an admin to reactivate it.'
+    });
+
+  // Load campus settings (never throws — returns safe defaults on failure)
   const campus = await getCampusSettings();
 
-  // Check if self check-in is allowed
+  // Check if self check-in is enabled
   if (!campus.selfCheckin)
-    return res.status(403).json({ error: 'Self check-in is currently disabled. Please see security personnel.' });
+    return res.status(403).json({
+      error: 'Self check-in is currently disabled. Please see security personnel.'
+    });
 
-  // Check operating hours
-  const now      = new Date();
-  const nowMins  = now.getHours() * 60 + now.getMinutes();
-  const [sh, sm] = campus.checkinStart.split(':').map(Number);
-  const [eh, em] = campus.checkinEnd.split(':').map(Number);
-  const startMins = sh * 60 + sm;
-  const endMins   = eh * 60 + em;
+  // Check operating hours using Jamaica time (UTC-5)
+  const nowJamaica = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Jamaica' }));
+  const nowMins    = nowJamaica.getHours() * 60 + nowJamaica.getMinutes();
+  const [sh, sm]   = campus.checkinStart.split(':').map(Number);
+  const [eh, em]   = campus.checkinEnd.split(':').map(Number);
+  const startMins  = sh * 60 + sm;
+  const endMins    = eh * 60 + em;
 
   if (nowMins < startMins || nowMins > endMins) {
     return res.status(403).json({
-      error: 'OUTSIDE_HOURS',
+      error:   'OUTSIDE_HOURS',
       message: `Self check-in is only available between ${campus.checkinStart} and ${campus.checkinEnd}.`
     });
   }
 
-  // Geofence check
+  // Geofence check — only if geofence is enabled
   if (campus.enabled) {
-    if (latitude === undefined || latitude === null || longitude === undefined || longitude === null) {
+    if (latitude == null || longitude == null) {
       return res.status(400).json({
-        error: 'LOCATION_REQUIRED',
+        error:   'LOCATION_REQUIRED',
         message: 'Your location is required for self check-in. Please allow location access and try again.'
       });
     }
@@ -174,14 +362,13 @@ router.post('/self-scan', requireRole('student'), async (req, res) => {
     );
 
     if (distance > campus.radius) {
-      // Log the out-of-bounds attempt
       await supabase.from('security_alerts').insert({
-        alert_type:  'out_of_bounds_scan',
-        user_id:     student.id,
+        alert_type:   'out_of_bounds_scan',
+        user_id:      student.id,
         triggered_by: student.id,
-        description: `Student attempted self check-in from ${Math.round(distance)}m away (limit: ${campus.radius}m)`,
-        severity:    'low'
-      });
+        description:  `Student attempted self check-in from ${Math.round(distance)}m away (limit: ${campus.radius}m)`,
+        severity:     'low'
+      }).catch(() => {}); // Don't fail the request if alert insert fails
 
       return res.status(403).json({
         error:    'OUT_OF_BOUNDS',
@@ -193,16 +380,19 @@ router.post('/self-scan', requireRole('student'), async (req, res) => {
   }
 
   // All checks passed — record the scan
-  const location = `Self Check-in (${latitude ? `${parseFloat(latitude).toFixed(4)}, ${parseFloat(longitude).toFixed(4)}` : 'GPS unavailable'})`;
-  const log = await recordScan(student.id, student.id, scan_type, location, res);
-  if (!log || log.headersSent) return;
+  const locString = (latitude != null && longitude != null)
+    ? `Self Check-in (${parseFloat(latitude).toFixed(4)}, ${parseFloat(longitude).toFixed(4)})`
+    : 'Self Check-in';
+
+  const result = await recordScan(student.id, student.id, scan_type, locString);
+  if (result.error) return res.status(result.status).json({ error: result.error, message: result.message });
 
   res.json({
     success:   true,
     scan_type,
     student: { id: student.id, name: student.full_name, studentId: student.student_id, grade: student.grade },
-    scan_time: log.scan_time,
-    location
+    scan_time: result.log.scan_time,
+    location:  locString
   });
 });
 
