@@ -298,7 +298,11 @@ async function startFaceCamera() {
   if (faceStream) return;
   try {
     faceStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+      video: {
+        facingMode: 'user',
+        width:  { ideal: 320 },   // lower res = much faster processing
+        height: { ideal: 240 }
+      }
     });
     const video  = document.getElementById('face-video');
     const canvas = document.getElementById('face-canvas');
@@ -308,41 +312,17 @@ async function startFaceCamera() {
     canvas.height = video.videoHeight;
 
     setFaceStatus('', 'Camera ready &mdash; look at the camera and press the button below');
-
-    // Start live detection loop (just for UI feedback, not matching yet)
-    faceInterval = setInterval(runLiveDetection, 800);
+    // No background detection loop — runs only when button is pressed
   } catch(e) {
     setFaceStatus('err', 'Camera access denied &mdash; allow camera permission and refresh');
   }
 }
 
-async function runLiveDetection() {
-  if (!modelsReady || !faceStream) return;
-  const video = document.getElementById('face-video');
-  const canvas = document.getElementById('face-canvas');
-  try {
-    const det = await faceapi.detectSingleFace(video,
-      new faceapi.SsdMobilenetv1Options({ minConfidence: 0.6 }))
-      .withFaceLandmarks();
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (det) {
-      const dims = faceapi.matchDimensions(canvas, video, true);
-      faceapi.draw.drawDetections(canvas, [faceapi.resizeResults(det, dims)]);
-      setFaceStatus('ok', 'Face detected &mdash; press button to identify');
-      document.getElementById('face-cam-wrap').className = 'face-camera-wrap detecting';
-    } else {
-      setFaceStatus('', 'No face detected &mdash; position your face in frame');
-      document.getElementById('face-cam-wrap').className = 'face-camera-wrap';
-    }
-  } catch(e) {}
-}
-
 function stopFaceCamera() {
-  clearInterval(faceInterval);
   if (faceStream) { faceStream.getTracks().forEach(t => t.stop()); faceStream = null; }
   const ctx = document.getElementById('face-canvas')?.getContext('2d');
   if (ctx) ctx.clearRect(0, 0, 9999, 9999);
+  document.getElementById('face-cam-wrap').className = 'face-camera-wrap';
 }
 
 async function triggerFaceScan() {
@@ -362,7 +342,7 @@ async function triggerFaceScan() {
   try {
     const video = document.getElementById('face-video');
     const detection = await faceapi
-      .detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.7 }))
+      .detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, inputSize: 224 }))
       .withFaceLandmarks()
       .withFaceDescriptor();
 

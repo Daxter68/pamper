@@ -355,13 +355,11 @@ async function startCamera() {
   if (videoStream) return;
   try {
     videoStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+      video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 } }
     });
     const video = document.getElementById('enrol-video');
     video.srcObject = videoStream;
     await new Promise(res => video.onloadedmetadata = res);
-
-    // Match canvas to video
     const canvas = document.getElementById('enrol-canvas');
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -431,7 +429,7 @@ async function startEnrolment() {
   setProgress(0);
   setFaceStatus('detecting', 'Look directly at the camera…');
 
-  detectionInterval = setInterval(captureFrame, 600);
+  detectionInterval = setInterval(captureFrame, 1200); // slower = less CPU strain
 }
 
 async function captureFrame() {
@@ -442,7 +440,7 @@ async function captureFrame() {
 
   try {
     const detection = await faceapi
-      .detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.7 }))
+      .detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, inputSize: 224 }))
       .withFaceLandmarks()
       .withFaceDescriptor();
 
