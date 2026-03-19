@@ -465,7 +465,20 @@ function setMethod(m) {
 
 function startScanner() {
   if (qrScanner) return;
-  qrScanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 220, height: 220 }, rememberLastUsedCamera: true, aspectRatio: 1.0 });
+  qrScanner = new Html5QrcodeScanner('qr-reader', {
+  fps: 15,
+  qrbox: { width: 250, height: 250 },
+  rememberLastUsedCamera: true,
+  aspectRatio: 1.0,
+  experimentalFeatures: {
+    useBarCodeDetectorIfSupported: true
+  },
+  videoConstraints: {
+    facingMode: 'environment',
+    width:  { ideal: 1280 },
+    height: { ideal: 720 }
+  }
+});
   qrScanner.render(code => { if (!scanning) processCheckin({ qr_code: code }, 'qr'); }, () => {});
 }
 
