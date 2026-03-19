@@ -2,11 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>PAMPER Face Enrolment</title>
+<title>PAMPER – Face Enrolment</title>
 <link rel="stylesheet" href="/css/app.css">
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-<link rel="icon" type="image/png" href="/images/Logo30x50.png">
-
 <style>
 .enrol-grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
 .camera-wrap {
@@ -86,9 +84,9 @@
     <h2>Face ID Enrolment</h2>
     <div class="topbar-r">
       <span class="chip chip-teal chip-mono">ADMIN</span>
-      <div id="model-status" style="font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;">
+      <div id="model-status" style="font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);padding:7px 14px;border-radius:20px;">
         <div class="face-dot" id="model-dot"></div>
-        <span id="model-status-txt">Loading models…</span>
+        <span id="model-status-txt">Loading face models…</span>
       </div>
     </div>
   </div>
@@ -145,6 +143,27 @@
               <button class="btn btn-ghost" id="cancel-btn" style="display:none;" onclick="cancelEnrolment()">Cancel</button>
             </div>
 
+            <!-- Instructions shown when all CDNs fail -->
+            <div id="model-instructions" style="display:none;margin-top:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;">
+              <p style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">⚠ Models could not load from the internet</p>
+              <p style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:10px;">Download the model files and place them in <code style="background:var(--surface);padding:1px 6px;border-radius:4px;font-size:11px;">pamper/public/models/</code></p>
+              <a href="https://github.com/justadudewhohacks/face-api.js/tree/master/weights" target="_blank" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;stroke:currentColor;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Model Files from GitHub
+              </a>
+              <p style="font-size:11.5px;color:var(--muted);margin-top:8px;">Download these 8 files into your <code style="font-size:11px;">public/models/</code> folder, then restart the server and refresh.</p>
+              <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.8;">
+                ssd_mobilenetv1_model-weights_manifest.json<br>
+                ssd_mobilenetv1_model-shard1<br>
+                ssd_mobilenetv1_model-shard2<br>
+                face_landmark_68_model-weights_manifest.json<br>
+                face_landmark_68_model-shard1<br>
+                face_recognition_model-weights_manifest.json<br>
+                face_recognition_model-shard1<br>
+                face_recognition_model-shard2
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -177,7 +196,7 @@ injectSidebar('idcards');
 initAuth(['admin']);
 
 const MODEL_URL  = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
-const REQUIRED_SAMPLES = 3; // number of face captures to average
+const REQUIRED_SAMPLES = 3;
 
 let modelsLoaded = false;
 let videoStream  = null;
@@ -189,26 +208,74 @@ let allStudents  = [];
 let enrolledSet  = new Set();
 let selectedStudentId = null;
 
-// ── Load face-api models ────────────────────────────────────────
+// ── Load face-api models — tries multiple sources ───────────────
+const MODEL_SOURCES = [
+  '/models',                                                          // local (fastest, works offline)
+  'https://unpkg.com/face-api.js@0.22.2/weights',                   // unpkg CDN
+  'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights',        // jsdelivr CDN
+];
+
 async function loadModels() {
-  try {
-    await Promise.all([
-      faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL)
-    ]);
-    modelsLoaded = true;
-    setModelStatus(true, 'Face models ready');
-  } catch(e) {
-    setModelStatus(false, 'Model load failed — check internet connection');
+  setModelStatus(false, 'Loading face models…');
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('start-btn').textContent = 'Waiting for models…';
+
+  for (let i = 0; i < MODEL_SOURCES.length; i++) {
+    const src = MODEL_SOURCES[i];
+    const label = src === '/models' ? 'local files' : src.includes('unpkg') ? 'unpkg CDN' : 'jsdelivr CDN';
+    try {
+      setModelStatus(false, `Trying ${label} (${i+1}/${MODEL_SOURCES.length})…`);
+
+      await faceapi.nets.ssdMobilenetv1.loadFromUri(src);
+      setModelStatus(false, `Loading landmarks from ${label}…`);
+
+      await faceapi.nets.faceLandmark68Net.loadFromUri(src);
+      setModelStatus(false, `Loading recognition from ${label}…`);
+
+      await faceapi.nets.faceRecognitionNet.loadFromUri(src);
+
+      modelsLoaded = true;
+      setModelStatus(true, `✓ Models ready (${label})`);
+      document.getElementById('start-btn').textContent = 'Start Face Capture';
+      if (selectedStudentId) document.getElementById('start-btn').disabled = false;
+      return; // success — stop trying
+
+    } catch(e) {
+      console.warn(`[Face] Failed to load from ${label}:`, e.message);
+      if (i === MODEL_SOURCES.length - 1) {
+        // All sources failed
+        setModelStatus(false, 'All sources failed — see instructions below');
+        document.getElementById('start-btn').textContent = 'Retry';
+        document.getElementById('start-btn').disabled = false;
+        document.getElementById('start-btn').onclick = () => { loadModels(); };
+        showLocalModelInstructions();
+      }
+    }
   }
 }
 
+function showLocalModelInstructions() {
+  const panel = document.getElementById('model-instructions');
+  if (panel) panel.style.display = '';
+}
+
 function setModelStatus(ok, msg) {
-  const dot = document.getElementById('model-dot');
+  const dot    = document.getElementById('model-dot');
+  const status = document.getElementById('model-status');
   dot.className = 'face-dot ' + (ok ? 'ok' : 'err');
   dot.style.animation = ok ? 'none' : '';
   document.getElementById('model-status-txt').textContent = msg;
+  // Highlight the status pill green when ready
+  if (ok) {
+    status.style.borderColor    = 'rgba(16,185,129,.4)';
+    status.style.background     = 'rgba(16,185,129,.08)';
+    status.style.color          = 'var(--green)';
+    dot.style.background        = 'var(--green)';
+  } else {
+    status.style.borderColor    = 'var(--border)';
+    status.style.background     = 'var(--surface)';
+    status.style.color          = 'var(--muted)';
+  }
 }
 
 // ── Load students ───────────────────────────────────────────────
@@ -327,10 +394,19 @@ function selectStudent() {
   document.getElementById('cam-btns').style.display = 'flex';
   document.getElementById('capture-section').style.display = 'none';
 
-  if (enrolledSet.has(id)) {
-    setFaceStatus('ok', `${student.full_name} already has face enrolled — capture to update`);
+  if (!modelsLoaded) {
+    setFaceStatus('detecting', 'Models still loading — please wait before capturing…');
+    document.getElementById('start-btn').disabled = true;
+  } else if (enrolledSet.has(id)) {
+    setFaceStatus('ok', `${student.full_name} already enrolled — capture to update`);
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('start-btn').textContent = 'Start Face Capture';
+    document.getElementById('start-btn').onclick = startEnrolment;
   } else {
     setFaceStatus('detecting', `Ready to enrol ${student.full_name}`);
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('start-btn').textContent = 'Start Face Capture';
+    document.getElementById('start-btn').onclick = startEnrolment;
   }
 
   startCamera();
@@ -339,8 +415,11 @@ function selectStudent() {
 // ── Enrolment process ───────────────────────────────────────────
 async function startEnrolment() {
   if (!selectedStudentId) { toast('Select a student first', '', 'warn'); return; }
-  if (!modelsLoaded)       { toast('Models still loading', 'Please wait a moment', 'warn'); return; }
-  if (!videoStream)        { await startCamera(); }
+  if (!modelsLoaded) {
+    toast('Models still loading', 'Please wait — you will see "Face models ready" when done', 'warn');
+    return;
+  }
+  if (!videoStream) { await startCamera(); }
 
   enrolActive  = true;
   captureCount = 0;

@@ -2,12 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>PAMPER Student Check-In</title>
+<title>PAMPER – Student Check-In</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-<link rel="icon" type="image/png" href="/images/Logo30x50.png">
-
 <style>
 :root{--teal:#0e8a7c;--teal-dark:#0a6b60;--teal-light:#1ab5a4;--navy:#0b1e24;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--font:'Plus Jakarta Sans',sans-serif;--mono:'DM Mono',monospace;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -114,7 +112,7 @@ input.idinput:focus{border-color:var(--teal);background:rgba(14,138,124,.1);}
 <body>
 <div class="page-header">
   <div class="brand-row">
-    <img src="/images/Logo30x50.png" alt="PAMPER" style="width:34px;height:auto;border-radius:6px;">
+    <div class="brand-mark"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
     <div class="brand-name">PAMPER</div>
   </div>
   <p>Campus Attendance &middot; Moneague College</p>
@@ -220,8 +218,13 @@ input.idinput:focus{border-color:var(--teal);background:rgba(14,138,124,.1);}
 </div>
 
 <script>
-const MODEL_URL    = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
-const MATCH_THRESH = 0.50; // lower = stricter. 0.4 very strict, 0.6 lenient
+const MATCH_THRESH = 0.50;
+
+const FACE_MODEL_SOURCES = [
+  '/models',
+  'https://unpkg.com/face-api.js@0.22.2/weights',
+  'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights',
+];
 
 let scanType    = 'in';
 let method      = 'qr';
@@ -230,7 +233,7 @@ let qrScanner   = null;
 let faceStream  = null;
 let modelsReady = false;
 let faceInterval = null;
-let enrolledDescriptors = []; // { userId, studentId, name, descriptor: Float32Array }
+let enrolledDescriptors = [];
 const recentScans = [];
 
 const ICONS = {
@@ -239,23 +242,25 @@ const ICONS = {
   warn: '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
 };
 
-// ═══════════════════════════════════════════════════════════════
-//  FACE RECOGNITION
-// ═══════════════════════════════════════════════════════════════
-
 async function loadFaceModels() {
-  try {
-    await Promise.all([
-      faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL)
-    ]);
-    modelsReady = true;
-    setModelNotice(true, 'Face ID ready &mdash; point your face at the camera');
-    document.getElementById('face-btn').disabled = false;
-  } catch(e) {
-    setModelNotice(false, 'Face models failed to load. Check your internet connection and refresh.');
+  for (let i = 0; i < FACE_MODEL_SOURCES.length; i++) {
+    const src = FACE_MODEL_SOURCES[i];
+    const label = src === '/models' ? 'local' : src.includes('unpkg') ? 'unpkg' : 'jsdelivr';
+    try {
+      setModelNotice(false, `Loading Face ID models (${label})&hellip;`);
+      await faceapi.nets.ssdMobilenetv1.loadFromUri(src);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(src);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(src);
+      modelsReady = true;
+      setModelNotice(true, 'Face ID ready &mdash; point your face at the camera');
+      document.getElementById('face-btn').disabled = false;
+      return;
+    } catch(e) {
+      console.warn(`[Face] ${label} failed:`, e.message);
+    }
   }
+  // All sources failed
+  setModelNotice(false, 'Face ID unavailable &mdash; use QR or Student ID tab instead');
 }
 
 function setModelNotice(ok, msg) {
@@ -465,20 +470,7 @@ function setMethod(m) {
 
 function startScanner() {
   if (qrScanner) return;
-  qrScanner = new Html5QrcodeScanner('qr-reader', {
-  fps: 15,
-  qrbox: { width: 250, height: 250 },
-  rememberLastUsedCamera: true,
-  aspectRatio: 1.0,
-  experimentalFeatures: {
-    useBarCodeDetectorIfSupported: true
-  },
-  videoConstraints: {
-    facingMode: 'environment',
-    width:  { ideal: 1280 },
-    height: { ideal: 720 }
-  }
-});
+  qrScanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 220, height: 220 }, rememberLastUsedCamera: true, aspectRatio: 1.0 });
   qrScanner.render(code => { if (!scanning) processCheckin({ qr_code: code }, 'qr'); }, () => {});
 }
 
