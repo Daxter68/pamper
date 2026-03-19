@@ -9,6 +9,7 @@ const authRoutes       = require('./routes/auth');
 const userRoutes       = require('./routes/users');
 const attendanceRoutes = require('./routes/attendance');
 const reportRoutes     = require('./routes/reports');
+const campusRoutes     = require('./routes/campus');
 const { requireAuth, requireRole } = require('./middleware/auth');
 
 const app  = express();
@@ -25,6 +26,7 @@ app.use('/api/auth',       authRoutes);
 app.use('/api/users',      userRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports',    reportRoutes);
+app.use('/api/campus',     campusRoutes);
 
 // ── Page Routes ───────────────────────────────────────────────
 // Public
@@ -53,6 +55,9 @@ app.get('/attendance', requireAuth, requireRole('admin','security'), (req, res) 
 
 app.get('/reports',    requireAuth, requireRole('admin','security'), (req, res) =>
   res.sendFile(path.join(__dirname, 'public/pages/reports.html')));
+
+app.get('/geofence',   requireAuth, requireRole('admin'), (req, res) =>
+  res.sendFile(path.join(__dirname, 'public/pages/geofence.html')));
 
 // ── Student only pages ────────────────────────────────────────
 app.get('/student-home', requireAuth, requireRole('student'), (req, res) =>

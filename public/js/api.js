@@ -149,6 +149,7 @@ function getSidebarHTML(activePage) {
     { href: '/students',   icon: `<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>`, label: 'Students', page:'students', group:'Main' },
     { href: '/attendance', icon: `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>`, label: 'Records', page:'attendance', group:'Records' },
     { href: '/reports',    icon: `<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>`, label: 'Reports', page:'reports', group:'Records' },
+    { href: '/geofence',   icon: `<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>`, label: 'Campus Geofence', page:'geofence', group:'Settings' },
   ];
 
   let nav = '';
@@ -178,7 +179,7 @@ function getSidebarHTML(activePage) {
     <aside class="sidebar">
       <div class="sb-beta">PAMPER · BETA v0.4</div>
       <div class="sb-brand">
-        <img src="/images/Logo30x50.png" alt="PAMPER Logo" style="width:32px;height:auto;border-radius:6px;flex-shrink:0;">
+        <div class="sb-mark"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
         <div><div class="sb-name">PAMPER</div><div class="sb-ver">Attendance System</div></div>
       </div>
       <nav class="sb-nav">${nav}</nav>

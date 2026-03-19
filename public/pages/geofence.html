@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PAMPER – Campus Geofence</title>
+<link rel="stylesheet" href="/css/app.css">
+<style>
+.geo-grid { display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start; }
+
+/* Map container */
+.map-card { background: var(--surface); border-radius: var(--r); border: 1px solid var(--border); overflow: hidden; }
+.map-frame {
+  width: 100%; height: 420px;
+  background: var(--surface-2);
+  position: relative; overflow: hidden;
+}
+/* CSS-drawn map placeholder / live map via Leaflet */
+#map { width: 100%; height: 100%; }
+
+/* Settings panel */
+.settings-stack { display: flex; flex-direction: column; gap: 16px; }
+
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--border-2);
+}
+.toggle-row:last-of-type { border-bottom: none; }
+.toggle-label strong { display: block; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.toggle-label span   { font-size: 12px; color: var(--muted); }
+
+/* Toggle switch */
+.toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; border-radius: 24px;
+  background: var(--border); cursor: pointer; transition: background .2s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; left: 3px; top: 3px;
+  transition: transform .2s; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+.toggle input:checked + .toggle-slider { background: var(--teal); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+/* Coord inputs */
+.coord-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Radius slider */
+.radius-row { display: flex; align-items: center; gap: 12px; }
+.radius-row input[type=range] {
+  flex: 1; accent-color: var(--teal); height: 4px; cursor: pointer;
+  border: none; background: transparent; padding: 0;
+}
+.radius-val {
+  min-width: 60px; text-align: right;
+  font-family: var(--mono); font-size: 14px;
+  font-weight: 700; color: var(--teal);
+}
+
+/* Status chip */
+.geo-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+}
+.geo-status.active { background: var(--green-p); color: var(--green); border: 1px solid rgba(16,185,129,.25); }
+.geo-status.inactive { background: var(--red-p); color: var(--red); border: 1px solid rgba(239,68,68,.25); }
+.geo-status svg { width: 16px; height: 16px; stroke: currentColor; flex-shrink: 0; }
+
+/* Time inputs */
+.time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Distance ring on map */
+.map-overlay-info {
+  position: absolute; bottom: 12px; left: 12px;
+  background: rgba(255,255,255,.92); border-radius: 8px; padding: 8px 12px;
+  font-size: 12px; color: var(--text); z-index: 1000;
+  border: 1px solid var(--border); backdrop-filter: blur(4px);
+}
+.map-overlay-info strong { color: var(--teal); font-family: var(--mono); }
+
+/* Pick location button */
+.locate-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 8px;
+  background: var(--teal-glow); border: 1px solid var(--teal-border);
+  color: var(--teal); font-family: var(--font); font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all .15s; width: 100%;
+  justify-content: center; margin-top: 8px;
+}
+.locate-btn svg { width: 15px; height: 15px; stroke: currentColor; }
+.locate-btn:hover { background: rgba(14,138,124,.18); }
+</style>
+<!-- Leaflet CSS for interactive map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>Campus Geofence Settings</h2>
+    <div class="topbar-r">
+      <span class="chip chip-teal chip-mono">ADMIN ONLY</span>
+      <div class="geo-status inactive" id="geo-status">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="geo-status-text">Loading…</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="geo-grid">
+
+      <!-- Map -->
+      <div class="map-card">
+        <div class="ph">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Campus Boundary Map</h3>
+          <span style="font-size:12px;color:var(--muted);">Click map to set center point</span>
+        </div>
+        <div class="map-frame">
+          <div id="map"></div>
+          <div class="map-overlay-info">
+            📍 <strong id="map-lat">—</strong>, <strong id="map-lng">—</strong>
+            &nbsp;|&nbsp; Radius: <strong id="map-radius">—</strong>m
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="settings-stack">
+
+        <!-- Enable / disable -->
+        <div class="panel">
+          <div class="ph"><h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Geofence Control</h3></div>
+          <div style="padding:16px 20px;">
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Geofence Enabled</strong>
+                <span>Require students to be on campus to check in</span>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="geo-enabled" onchange="updateStatus()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Allow Self Check-in</strong>
+                <span>Students can check in using their own device</span>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="self-checkin">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div class="panel">
+          <div class="ph"><h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Campus Location</h3></div>
+          <div style="padding:16px 20px;">
+            <div class="field" style="margin-bottom:4px;">
+              <label>Campus Name</label>
+              <input type="text" id="campus-name" placeholder="e.g. Moneague College">
+            </div>
+            <div class="coord-grid">
+              <div class="field">
+                <label>Latitude</label>
+                <input type="number" id="geo-lat" placeholder="18.2706" step="0.0001" oninput="updateMapFromInputs()">
+              </div>
+              <div class="field">
+                <label>Longitude</label>
+                <input type="number" id="geo-lng" placeholder="-77.1270" step="0.0001" oninput="updateMapFromInputs()">
+              </div>
+            </div>
+            <button class="locate-btn" onclick="useMyLocation()">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              Use My Current Location as Campus Center
+            </button>
+          </div>
+        </div>
+
+        <!-- Radius -->
+        <div class="panel">
+          <div class="ph"><h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>Allowed Radius</h3></div>
+          <div style="padding:16px 20px;">
+            <div class="field" style="margin-bottom:8px;">
+              <label>Distance from campus center (metres)</label>
+              <div class="radius-row">
+                <input type="range" id="radius-slider" min="50" max="2000" step="50" value="300" oninput="syncRadius(this.value)">
+                <div class="radius-val"><span id="radius-display">300</span>m</div>
+              </div>
+            </div>
+            <input type="number" id="geo-radius" value="300" min="50" max="5000" oninput="syncRadius(this.value)" style="font-family:var(--mono);">
+            <p style="font-size:12px;color:var(--muted);margin-top:8px;">
+              💡 Recommended: 100–300m for a single building, 500m+ for a large campus.
+              The circle on the map updates as you drag the slider.
+            </p>
+          </div>
+        </div>
+
+        <!-- Operating Hours -->
+        <div class="panel">
+          <div class="ph"><h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Check-in Hours</h3></div>
+          <div style="padding:16px 20px;">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Students can only self check-in during these hours.</p>
+            <div class="time-grid">
+              <div class="field">
+                <label>Opens (Check-in Start)</label>
+                <input type="time" id="checkin-start" value="07:00">
+              </div>
+              <div class="field">
+                <label>Closes (Check-out End)</label>
+                <input type="time" id="checkin-end" value="18:00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save button -->
+        <button class="btn btn-primary" id="save-btn" onclick="saveSettings()" style="width:100%;padding:14px;font-size:15px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Geofence Settings
+        </button>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+injectSidebar('geofence');
+initAuth(['admin']);
+
+let map, marker, circle;
+
+// ── Init map ────────────────────────────────────────────────────
+function initMap(lat, lng, radius) {
+  if (map) { map.remove(); map = null; }
+
+  map = L.map('map').setView([lat, lng], 16);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Campus center marker
+  marker = L.marker([lat, lng], {
+    draggable: true,
+    icon: L.divIcon({
+      className: '',
+      html: `<div style="width:24px;height:24px;background:var(--teal,#0e8a7c);border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.3);"></div>`,
+      iconAnchor: [12, 12]
+    })
+  }).addTo(map);
+
+  // Geofence circle
+  circle = L.circle([lat, lng], {
+    radius,
+    color:       '#0e8a7c',
+    fillColor:   '#0e8a7c',
+    fillOpacity: 0.08,
+    weight:      2,
+    dashArray:   '6 4'
+  }).addTo(map);
+
+  // Drag marker to update coords
+  marker.on('dragend', e => {
+    const { lat, lng } = e.target.getLatLng();
+    setCoords(lat, lng);
+  });
+
+  // Click map to move marker
+  map.on('click', e => {
+    const { lat, lng } = e.latlng;
+    marker.setLatLng([lat, lng]);
+    circle.setLatLng([lat, lng]);
+    setCoords(lat, lng);
+  });
+
+  updateOverlay(lat, lng, radius);
+}
+
+function setCoords(lat, lng) {
+  document.getElementById('geo-lat').value = lat.toFixed(6);
+  document.getElementById('geo-lng').value = lng.toFixed(6);
+  updateOverlay(lat, lng, getCurrentRadius());
+}
+
+function updateMapFromInputs() {
+  const lat = parseFloat(document.getElementById('geo-lat').value);
+  const lng = parseFloat(document.getElementById('geo-lng').value);
+  if (isNaN(lat) || isNaN(lng)) return;
+  if (marker) { marker.setLatLng([lat, lng]); circle.setLatLng([lat, lng]); }
+  if (map) map.setView([lat, lng]);
+  updateOverlay(lat, lng, getCurrentRadius());
+}
+
+function getCurrentRadius() {
+  return parseInt(document.getElementById('geo-radius').value) || 300;
+}
+
+function syncRadius(val) {
+  const r = parseInt(val) || 300;
+  document.getElementById('radius-display').textContent = r;
+  document.getElementById('radius-slider').value = r;
+  document.getElementById('geo-radius').value    = r;
+  if (circle) circle.setRadius(r);
+  const lat = parseFloat(document.getElementById('geo-lat').value);
+  const lng = parseFloat(document.getElementById('geo-lng').value);
+  if (!isNaN(lat) && !isNaN(lng)) updateOverlay(lat, lng, r);
+}
+
+function updateOverlay(lat, lng, radius) {
+  document.getElementById('map-lat').textContent    = lat.toFixed(5);
+  document.getElementById('map-lng').textContent    = lng.toFixed(5);
+  document.getElementById('map-radius').textContent = radius;
+}
+
+function updateStatus() {
+  const enabled = document.getElementById('geo-enabled').checked;
+  const el = document.getElementById('geo-status');
+  const txt = document.getElementById('geo-status-text');
+  if (enabled) {
+    el.className = 'geo-status active';
+    txt.textContent = 'Geofence Active';
+    el.querySelector('svg').innerHTML = `<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>`;
+  } else {
+    el.className = 'geo-status inactive';
+    txt.textContent = 'Geofence Disabled';
+    el.querySelector('svg').innerHTML = `<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>`;
+  }
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) { toast('Not supported','Your browser does not support GPS','err'); return; }
+  toast('Locating…','Getting your current position','ok');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      document.getElementById('geo-lat').value = lat.toFixed(6);
+      document.getElementById('geo-lng').value = lng.toFixed(6);
+      if (marker) { marker.setLatLng([lat, lng]); circle.setLatLng([lat, lng]); }
+      if (map) map.setView([lat, lng], 17);
+      updateOverlay(lat, lng, getCurrentRadius());
+      toast('Location set!',`${lat.toFixed(5)}, ${lng.toFixed(5)}`,'ok');
+    },
+    err => toast('Location error', err.message, 'err'),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+// ── Load settings ───────────────────────────────────────────────
+async function loadSettings() {
+  try {
+    const res = await api.get('/api/campus/geofence');
+
+    document.getElementById('geo-enabled').checked  = res.enabled;
+    document.getElementById('self-checkin').checked = res.self_checkin;
+    document.getElementById('geo-lat').value        = res.lat;
+    document.getElementById('geo-lng').value        = res.lng;
+    document.getElementById('geo-radius').value     = res.radius;
+    document.getElementById('radius-slider').value  = res.radius;
+    document.getElementById('radius-display').textContent = res.radius;
+    document.getElementById('checkin-start').value  = res.checkin_start;
+    document.getElementById('checkin-end').value    = res.checkin_end;
+    document.getElementById('campus-name').value    = res.campus_name;
+
+    updateStatus();
+    initMap(res.lat, res.lng, res.radius);
+
+  } catch(e) {
+    toast('Could not load settings', e.message, 'err');
+    // Init with defaults
+    initMap(18.2706, -77.1270, 300);
+  }
+}
+
+// ── Save settings ───────────────────────────────────────────────
+async function saveSettings() {
+  const lat    = parseFloat(document.getElementById('geo-lat').value);
+  const lng    = parseFloat(document.getElementById('geo-lng').value);
+  const radius = parseInt(document.getElementById('geo-radius').value);
+  const start  = document.getElementById('checkin-start').value;
+  const end    = document.getElementById('checkin-end').value;
+  const name   = document.getElementById('campus-name').value.trim();
+
+  if (isNaN(lat) || isNaN(lng)) { toast('Invalid coordinates','Please enter valid lat/lng values','err'); return; }
+  if (isNaN(radius) || radius < 50) { toast('Invalid radius','Minimum radius is 50 metres','err'); return; }
+  if (!start || !end) { toast('Invalid hours','Please set check-in start and end times','err'); return; }
+  if (!name) { toast('Missing campus name','Please enter a campus name','err'); return; }
+
+  const btn = document.getElementById('save-btn');
+  setLoading(btn, true);
+
+  try {
+    await api.patch('/api/campus/settings', {
+      geofence_enabled: document.getElementById('geo-enabled').checked  ? 'true' : 'false',
+      self_checkin:     document.getElementById('self-checkin').checked  ? 'true' : 'false',
+      geofence_lat:     String(lat),
+      geofence_lng:     String(lng),
+      geofence_radius:  String(radius),
+      checkin_start:    start,
+      checkin_end:      end,
+      campus_name:      name
+    });
+
+    toast('Settings saved!', `Geofence set to ${radius}m around ${name}`, 'ok');
+    updateOverlay(lat, lng, radius);
+
+  } catch(e) {
+    toast('Save failed', e.message, 'err');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+// Also add geofence to admin sidebar
+function injectSidebar(active) {
+  const el = document.getElementById('sidebar-root');
+  el.innerHTML = `
+    <aside class="sidebar">
+      <div class="sb-beta">PAMPER · BETA v0.4</div>
+      <div class="sb-brand">
+        <div class="sb-mark"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div><div class="sb-name">PAMPER</div><div class="sb-ver">Admin Portal</div></div>
+      </div>
+      <nav class="sb-nav">
+        <div class="sb-label">Main</div>
+        <a class="nav-a" href="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+        <a class="nav-a" href="/scanner"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>Scan Attendance</a>
+        <a class="nav-a" href="/students"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Students</a>
+        <div class="sb-label">Records</div>
+        <a class="nav-a" href="/attendance"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Attendance Records</a>
+        <a class="nav-a" href="/reports"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports</a>
+        <div class="sb-label">Settings</div>
+        <a class="nav-a on" href="/geofence"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Campus Geofence</a>
+        <div class="sb-label">System</div>
+        <a class="nav-a" href="/profile"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>My Profile</a>
+        <a class="nav-a" href="#" onclick="logout();return false;"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</a>
+      </nav>
+      <div class="sb-user">
+        <div class="user-chip">
+          <div class="u-av" id="sb-user-av">?</div>
+          <div><div class="u-name" id="sb-user-name">Loading…</div><div class="u-role" id="sb-user-role"></div></div>
+        </div>
+      </div>
+    </aside>`;
+}
+
+loadSettings();
+</script>
+</body>
+</html>
