@@ -349,31 +349,43 @@ async function triggerFaceScan() {
 
   const btn = document.getElementById('face-btn');
   btn.disabled = true;
-  document.getElementById('face-btn-lbl').textContent = 'Identifying...';
-  setFaceStatus('', 'Scanning face...');
+  document.getElementById('face-btn-lbl').textContent = 'Scanning…';
+
+  const video = document.getElementById('face-video');
+  const detectorOptions = faceDetectorType === 'tiny'
+    ? new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 })
+    : new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
+
+  // Try up to 5 frames to find a face (camera sometimes needs a moment)
+  let detection = null;
+  const MAX_TRIES = 5;
+  for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
+    setFaceStatus('', `Scanning… (${attempt}/${MAX_TRIES})`);
+    try {
+      detection = await faceapi
+        .detectSingleFace(video, detectorOptions)
+        .withFaceLandmarks(faceDetectorType === 'tiny')
+        .withFaceDescriptor();
+      if (detection) break; // found a face — stop retrying
+    } catch(e) {
+      console.warn('[Face] Detection attempt failed:', e.message);
+    }
+    // Wait 300ms before next attempt to let the camera settle
+    if (!detection && attempt < MAX_TRIES) await new Promise(r => setTimeout(r, 300));
+  }
+
+  if (!detection) {
+    setFaceStatus('err', 'No face detected — ensure your face is well lit and centred');
+    document.getElementById('face-cam-wrap').className = 'face-camera-wrap';
+    btn.disabled = false;
+    document.getElementById('face-btn-lbl').textContent = 'Scan Face to Check ' + (scanType === 'in' ? 'In' : 'Out');
+    return;
+  }
 
   try {
-    const video = document.getElementById('face-video');
-    const detectorOptions = faceDetectorType === 'tiny'
-      ? new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
-      : new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
-
-    const detection = await faceapi
-      .detectSingleFace(video, detectorOptions)
-      .withFaceLandmarks(faceDetectorType === 'tiny')
-      .withFaceDescriptor();
-
-    if (!detection) {
-      setFaceStatus('err', 'No face detected &mdash; try again');
-      document.getElementById('face-cam-wrap').className = 'face-camera-wrap';
-      btn.disabled = false;
-      document.getElementById('face-btn-lbl').textContent = 'Scan Face to Check ' + (scanType === 'in' ? 'In' : 'Out');
-      return;
-    }
-
     // Compare against all enrolled descriptors
     const queryDescriptor = detection.descriptor;
-    let bestMatch = null;
+    let bestMatch    = null;
     let bestDistance = 1.0;
 
     enrolledDescriptors.forEach(enrolled => {
@@ -388,23 +400,17 @@ async function triggerFaceScan() {
     setConfidenceBar(confidence);
 
     if (bestMatch && bestDistance <= MATCH_THRESH) {
-      // Match found!
       document.getElementById('face-cam-wrap').className = 'face-camera-wrap matched';
       setFaceStatus('ok', `Match: ${bestMatch.name} (${confidence}% confidence)`);
-      // Record attendance using student_id
       await processCheckin({ student_id: bestMatch.studentId }, 'face');
     } else {
-      // No match
       document.getElementById('face-cam-wrap').className = 'face-camera-wrap nomatch';
-      setFaceStatus('err', `No match found (closest: ${confidence}%) &mdash; try again or use Student ID`);
+      setFaceStatus('err', `No match found (${confidence}% best) — try again or use Student ID`);
       showResult('err', 'Face Not Recognised',
-        enrolledDescriptors.length > 0
-          ? `Your face did not match any enrolled student (${confidence}% best match). Try again or use Student ID tab.`
-          : 'No students are enrolled for Face ID.',
-        '');
+        `Your face did not match any enrolled student (${confidence}% best match). Try again with better lighting, or use the Student ID tab.`, '');
     }
   } catch(e) {
-    setFaceStatus('err', 'Detection error &mdash; ' + e.message);
+    setFaceStatus('err', 'Error — ' + e.message);
     showResult('err', 'Detection Failed', e.message, '');
   }
 
