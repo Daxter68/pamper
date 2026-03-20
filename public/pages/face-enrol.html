@@ -245,30 +245,45 @@ const MODEL_SOURCES = [
 ];
 
 let modelsLoaded   = false;
+let detectorType   = 'ssd'; // 'tiny' or 'ssd' — set during loadModels
 let allStudents    = [];
 let enrolledSet    = new Set();
 let selectedId     = null;
 let photoData      = [null, null, null]; // base64 image data per slot
 let photoValid     = [false, false, false]; // whether face was found in each photo
 
-// ── Load models ──────────────────────────────────────────────────
+// ── Load models — tries tiny first, falls back to SSD ───────────
 async function loadModels() {
-  for (let i = 0; i < MODEL_SOURCES.length; i++) {
-    const src   = MODEL_SOURCES[i];
-    const label = src === '/models' ? 'local' : src.includes('unpkg') ? 'unpkg' : 'jsdelivr';
+  // Try tiny models first (faster), then fall back to SSD (already downloaded)
+  const attempts = [
+    { src: '/models',     detector: 'tiny', label: 'local (tiny)' },
+    { src: '/models',     detector: 'ssd',  label: 'local (SSD)'  },
+    { src: 'https://unpkg.com/face-api.js@0.22.2/weights', detector: 'tiny', label: 'unpkg (tiny)' },
+    { src: 'https://unpkg.com/face-api.js@0.22.2/weights', detector: 'ssd',  label: 'unpkg (SSD)'  },
+  ];
+
+  for (const attempt of attempts) {
     try {
-      setModelStatus('loading', `Loading models (${label})…`);
-      await faceapi.nets.tinyFaceDetector.loadFromUri(src);
-      await faceapi.nets.faceLandmark68TinyNet.loadFromUri(src);
-      await faceapi.nets.faceRecognitionNet.loadFromUri(src);
-      modelsLoaded = true;
-      setModelStatus('ready', '✓ Models ready');
+      setModelStatus('loading', `Trying ${attempt.label}…`);
+      if (attempt.detector === 'tiny') {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(attempt.src);
+        await faceapi.nets.faceLandmark68TinyNet.loadFromUri(attempt.src);
+      } else {
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(attempt.src);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(attempt.src);
+      }
+      await faceapi.nets.faceRecognitionNet.loadFromUri(attempt.src);
+      modelsLoaded  = true;
+      detectorType  = attempt.detector;
+      setModelStatus('ready', `✓ Models ready`);
+      checkEnrolButton(); // re-check button now that models loaded
       return;
     } catch(e) {
-      console.warn(`[Face] ${label} failed:`, e.message);
+      console.warn(`[Face] ${attempt.label} failed:`, e.message);
     }
   }
-  setModelStatus('failed', 'Models failed — check /models folder');
+  setModelStatus('failed', 'Models failed — see console for details');
+  checkEnrolButton(); // still enable button — will warn user on click
 }
 
 function setModelStatus(state, msg) {
@@ -412,14 +427,29 @@ function resetSlots() {
 function checkEnrolButton() {
   const hasStudent = !!selectedId;
   const hasPhotos  = photoData.some(p => p !== null);
-  const btn = document.getElementById('enrol-btn');
-  btn.disabled = !(hasStudent && hasPhotos && modelsLoaded);
+  const btn        = document.getElementById('enrol-btn');
+  const lbl        = document.getElementById('enrol-btn-lbl');
+
+  if (hasStudent && hasPhotos) {
+    btn.disabled = false;
+    if (!modelsLoaded) {
+      lbl.textContent = 'Save Face ID (models loading…)';
+    } else {
+      lbl.textContent = 'Save Face ID';
+    }
+  } else {
+    btn.disabled = true;
+    lbl.textContent = 'Save Face ID';
+  }
 }
 
 // ── Core enrolment ────────────────────────────────────────────────
 async function enrolStudent() {
   if (!selectedId)    { toast('Select a student first', '', 'warn'); return; }
-  if (!modelsLoaded)  { toast('Models not ready', 'Wait for green status indicator', 'warn'); return; }
+  if (!modelsLoaded)  {
+    toast('Models not ready', 'Face models failed to load. Check your /models folder has all required files.', 'err');
+    return;
+  }
 
   const photos = photoData.filter(p => p !== null);
   if (!photos.length) { toast('Upload at least 1 photo', '', 'warn'); return; }
@@ -444,10 +474,16 @@ async function enrolStudent() {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
 
-      // Detect face and get descriptor
+      // Detect face using whichever model loaded successfully
+      const detectorOptions = detectorType === 'tiny'
+        ? new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 })
+        : new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 });
+
+      const useTinyLandmarks = detectorType === 'tiny';
+
       const detection = await faceapi
-        .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
-        .withFaceLandmarks(true)   // true = use tiny landmark model
+        .detectSingleFace(canvas, detectorOptions)
+        .withFaceLandmarks(useTinyLandmarks)
         .withFaceDescriptor();
 
       if (!detection) {
