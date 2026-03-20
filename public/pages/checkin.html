@@ -242,24 +242,37 @@ const ICONS = {
   warn: '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
 };
 
+let faceDetectorType = 'ssd'; // updated during loading
+
 async function loadFaceModels() {
-  for (let i = 0; i < FACE_MODEL_SOURCES.length; i++) {
-    const src = FACE_MODEL_SOURCES[i];
-    const label = src === '/models' ? 'local' : src.includes('unpkg') ? 'unpkg' : 'jsdelivr';
+  const attempts = [
+    { src: '/models', detector: 'tiny', label: 'local (tiny)' },
+    { src: '/models', detector: 'ssd',  label: 'local (SSD)'  },
+    { src: 'https://unpkg.com/face-api.js@0.22.2/weights', detector: 'tiny', label: 'unpkg (tiny)' },
+    { src: 'https://unpkg.com/face-api.js@0.22.2/weights', detector: 'ssd',  label: 'unpkg (SSD)'  },
+    { src: 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights', detector: 'ssd', label: 'jsdelivr (SSD)' },
+  ];
+
+  for (const attempt of attempts) {
     try {
-      setModelNotice(false, `Loading Face ID models (${label})&hellip;`);
-      await faceapi.nets.tinyFaceDetector.loadFromUri(src);
-      await faceapi.nets.faceLandmark68TinyNet.loadFromUri(src);
-      await faceapi.nets.faceRecognitionNet.loadFromUri(src);
-      modelsReady = true;
+      setModelNotice(false, `Loading Face ID (${attempt.label})&hellip;`);
+      if (attempt.detector === 'tiny') {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(attempt.src);
+        await faceapi.nets.faceLandmark68TinyNet.loadFromUri(attempt.src);
+      } else {
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(attempt.src);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(attempt.src);
+      }
+      await faceapi.nets.faceRecognitionNet.loadFromUri(attempt.src);
+      modelsReady      = true;
+      faceDetectorType = attempt.detector;
       setModelNotice(true, 'Face ID ready &mdash; point your face at the camera');
       document.getElementById('face-btn').disabled = false;
       return;
     } catch(e) {
-      console.warn(`[Face] ${label} failed:`, e.message);
+      console.warn(`[Face] ${attempt.label} failed:`, e.message);
     }
   }
-  // All sources failed
   setModelNotice(false, 'Face ID unavailable &mdash; use QR or Student ID tab instead');
 }
 
@@ -341,9 +354,13 @@ async function triggerFaceScan() {
 
   try {
     const video = document.getElementById('face-video');
+    const detectorOptions = faceDetectorType === 'tiny'
+      ? new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+      : new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
+
     const detection = await faceapi
-      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
-      .withFaceLandmarks(true)
+      .detectSingleFace(video, detectorOptions)
+      .withFaceLandmarks(faceDetectorType === 'tiny')
       .withFaceDescriptor();
 
     if (!detection) {
