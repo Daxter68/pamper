@@ -495,7 +495,7 @@ router.get('/', requireRole('admin', 'security'), async (req, res) => {
 });
 
 // GET /api/attendance/me – student's own history
-router.get('/me', async (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
   if (req.user.role !== 'student')
     return res.status(403).json({ error: 'Students only' });
 

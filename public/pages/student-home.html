@@ -3,11 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PAMPER Student Portal</title>
+<title>PAMPER – Student Portal</title>
 <link rel="stylesheet" href="/css/app.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<link rel="icon" type="image/png" href="/images/Logo30x50.png">
-
 <style>
 .student-layout {
   display: grid;
@@ -322,27 +320,33 @@ async function init() {
 async function loadAttendance() {
   try {
     const res = await fetch('/api/attendance/me', { credentials: 'include' });
-    if (!res.ok) throw new Error('Failed to fetch attendance');
+
+    if (!res.ok) {
+      throw new Error(`Server returned ${res.status}`);
+    }
+
     const data = await res.json();
-    const { summary, records } = data;
 
-    document.getElementById('stat-present').textContent = summary.present_days;
-    document.getElementById('stat-absent').textContent  = summary.total_days - summary.present_days;
-    document.getElementById('stat-rate').textContent    = summary.attendance_rate + '%';
-    document.getElementById('rate-chip').textContent    = summary.attendance_rate + '%';
-    document.getElementById('rate-pct').textContent     = summary.attendance_rate + '%';
+    // Safe fallbacks if API returns unexpected shape
+    const summary = data.summary || { present_days: 0, total_days: 0, attendance_rate: 0 };
+    const records = data.records || [];
+
+    document.getElementById('stat-present').textContent = summary.present_days ?? '0';
+    document.getElementById('stat-absent').textContent  = (summary.total_days - summary.present_days) || '0';
+    document.getElementById('stat-rate').textContent    = (summary.attendance_rate ?? 0) + '%';
+    document.getElementById('rate-chip').textContent    = (summary.attendance_rate ?? 0) + '%';
+    document.getElementById('rate-pct').textContent     = (summary.attendance_rate ?? 0) + '%';
     document.getElementById('rate-desc').textContent    =
-      `${summary.present_days} present out of ${summary.total_days} school days`;
+      `${summary.present_days ?? 0} present out of ${summary.total_days ?? 0} school days`;
 
-    // Colour the rate
-    const r = summary.attendance_rate;
+    const r = summary.attendance_rate ?? 0;
     const col = r >= 80 ? 'var(--green)' : r >= 60 ? 'var(--amber)' : 'var(--red)';
     document.getElementById('rate-chip').style.color = col;
     document.getElementById('rate-pct').style.color  = col;
 
-    // Animate bar
     setTimeout(() => {
       const fill = document.getElementById('rate-fill');
+      if (!fill) return;
       fill.style.width      = r + '%';
       fill.style.background = r >= 80
         ? 'linear-gradient(90deg,#10b981,#34d399)'
@@ -351,11 +355,10 @@ async function loadAttendance() {
           : 'linear-gradient(90deg,#ef4444,#f87171)';
     }, 300);
 
-    // Render table
     const body = document.getElementById('att-body');
-    if (!records || records.length === 0) {
+    if (!records.length) {
       body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted);">
-        No attendance records yet. Check in at the campus gate to get started.
+        No attendance records yet. Use the Check In / Out button to get started.
       </td></tr>`;
       return;
     }
@@ -375,8 +378,19 @@ async function loadAttendance() {
     }).join('');
 
   } catch(e) {
-    document.getElementById('att-body').innerHTML =
-      `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted);">Could not load attendance records.</td></tr>`;
+    console.error('[Student] Attendance load error:', e.message);
+    // Show zeros instead of staying on "loading"
+    ['stat-present','stat-absent','stat-rate','rate-chip','rate-pct'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = id.includes('rate') ? '0%' : '0';
+    });
+    const rateDesc = document.getElementById('rate-desc');
+    if (rateDesc) rateDesc.textContent = 'Could not load attendance data';
+    const body = document.getElementById('att-body');
+    if (body) body.innerHTML =
+      `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted);">
+        Could not load records — please refresh the page.
+      </td></tr>`;
   }
 }
 
@@ -386,7 +400,11 @@ function buildSidebar() {
     <aside class="sidebar">
       <div class="sb-beta">PAMPER · v1.1</div>
       <div class="sb-brand">
-        <img src="/images/Logo30x50.png" alt="PAMPER" style="width:34px;height:auto;border-radius:6px;flex-shrink:0;">
+        <div class="sb-mark">
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+        </div>
         <div><div class="sb-name">PAMPER</div><div class="sb-ver">Student Portal</div></div>
       </div>
       <nav class="sb-nav">
