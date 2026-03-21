@@ -1,0 +1,5 @@
+Student Check-In Link:
+https://pamper2.vercel.app/checkin
+
+Regular link: 
+https://pamper2.vercel.app/
