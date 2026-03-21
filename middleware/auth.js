@@ -1,148 +1,37 @@
-const fs = require('fs');
-const path = require('path');
+const jwt = require('jsonwebtoken');
 
-const content = `const express  = require('express');
-const bcrypt   = require('bcryptjs');
-const jwt      = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
-const supabase = require('../config/supabase');
-
-const router = express.Router();
-const COOKIE_OPTS = { httpOnly: true, sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 };
-
-// Inline token verify — avoids circular dependency with middleware/auth.js
-function verifyToken(req, res) {
-  const token = req.cookies?.token ||
-    (req.headers.authorization?.startsWith('Bearer ')
-      ? req.headers.authorization.slice(7)
-      : null);
+function requireAuth(req, res, next) {
+  const token = req.cookies?.token || extractBearer(req);
   if (!token) {
-    res.status(401).json({ error: 'Unauthorized - please sign in' });
-    return null;
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized – please sign in' });
+    return res.redirect('/login');
   }
   try {
-    return jwt.verify(token, process.env.JWT_SECRET);
-  } catch(e) {
-    res.status(401).json({ error: 'Session expired - please sign in again' });
-    return null;
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch(err) {
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Session expired – please sign in again' });
+    res.clearCookie('token');
+    return res.redirect('/login');
   }
 }
 
-router.post('/register', async (req, res) => {
-  const { full_name, email, password, confirm_password, role, student_id, grade } = req.body;
-  if (!full_name || !email || !password || !role)
-    return res.status(400).json({ error: 'Full name, email, password and role are required' });
-  if (password !== confirm_password)
-    return res.status(400).json({ error: 'Passwords do not match' });
-  if (password.length < 8)
-    return res.status(400).json({ error: 'Password must be at least 8 characters' });
-  const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
-  if (!emailRegex.test(email))
-    return res.status(400).json({ error: 'Please enter a valid email address' });
-  if (!['admin', 'security', 'student', 'teacher'].includes(role))
-    return res.status(400).json({ error: 'Invalid role selected' });
-  if (role === 'student' && !student_id)
-    return res.status(400).json({ error: 'Student ID is required for student accounts' });
-  const { data: existing } = await supabase.from('users').select('id')
-    .eq('email', email.toLowerCase().trim()).single();
-  if (existing)
-    return res.status(409).json({ error: 'An account with this email already exists' });
-  const password_hash = await bcrypt.hash(password, 12);
-  const qr_code = uuidv4();
-  const { data: newUser, error } = await supabase.from('users').insert({
-    full_name: full_name.trim(),
-    email: email.toLowerCase().trim(),
-    password_hash, role,
-    student_id: role === 'student' ? student_id.trim().toUpperCase() : null,
-    grade: role === 'student' ? grade : null,
-    qr_code, qr_status: 'active'
-  }).select('id, full_name, email, role, student_id, grade, qr_code').single();
-  if (error) {
-    if (error.message.includes('unique') || error.message.includes('duplicate'))
-      return res.status(409).json({ error: 'Email or Student ID already in use' });
-    return res.status(500).json({ error: 'Failed to create account' });
-  }
-  const token = jwt.sign({
-    id: newUser.id, email: newUser.email, name: newUser.full_name,
-    role: newUser.role, studentId: newUser.student_id,
-    grade: newUser.grade, qrCode: newUser.qr_code
-  }, process.env.JWT_SECRET, { expiresIn: '8h' });
-  res.cookie('token', token, COOKIE_OPTS);
-  res.status(201).json({
-    success: true, message: 'Account created successfully',
-    user: { id: newUser.id, name: newUser.full_name, role: newUser.role, email: newUser.email }
-  });
-});
-
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password)
-    return res.status(400).json({ error: 'Email and password are required' });
-  const { data: user, error } = await supabase.from('users')
-    .select('id, full_name, email, password_hash, role, student_id, grade, qr_code, is_blacklisted')
-    .eq('email', email.toLowerCase().trim()).single();
-  if (error || !user)
-    return res.status(401).json({ error: 'Invalid email or password' });
-  const valid = await bcrypt.compare(password, user.password_hash);
-  if (!valid)
-    return res.status(401).json({ error: 'Invalid email or password' });
-  if (user.is_blacklisted)
-    return res.status(403).json({ error: 'Account suspended - contact administration' });
-  const token = jwt.sign({
-    id: user.id, email: user.email, name: user.full_name,
-    role: user.role, studentId: user.student_id,
-    grade: user.grade, qrCode: user.qr_code
-  }, process.env.JWT_SECRET, { expiresIn: '8h' });
-  res.cookie('token', token, COOKIE_OPTS);
-  res.json({ success: true, user: { id: user.id, name: user.full_name, role: user.role, email: user.email } });
-});
-
-router.post('/logout', (req, res) => {
-  res.clearCookie('token');
-  res.json({ success: true });
-});
-
-router.get('/me', async (req, res) => {
-  const decoded = verifyToken(req, res);
-  if (!decoded) return;
-  const { data: user, error } = await supabase.from('users')
-    .select('id, full_name, email, role, student_id, grade, qr_code, is_blacklisted')
-    .eq('id', decoded.id).single();
-  if (error || !user)
-    return res.status(404).json({ error: 'User not found' });
-  res.json({ user: {
-    id: user.id, name: user.full_name, email: user.email,
-    role: user.role, studentId: user.student_id,
-    grade: user.grade, qrCode: user.qr_code
-  }});
-});
-
-router.post('/change-password', async (req, res) => {
-  const decoded = verifyToken(req, res);
-  if (!decoded) return;
-  const { currentPassword, newPassword } = req.body;
-  if (!currentPassword || !newPassword || newPassword.length < 8)
-    return res.status(400).json({ error: 'New password must be at least 8 characters' });
-  const { data: user } = await supabase.from('users')
-    .select('password_hash').eq('id', decoded.id).single();
-  const valid = await bcrypt.compare(currentPassword, user.password_hash);
-  if (!valid)
-    return res.status(401).json({ error: 'Current password is incorrect' });
-  const hash = await bcrypt.hash(newPassword, 12);
-  await supabase.from('users').update({ password_hash: hash }).eq('id', decoded.id);
-  res.json({ success: true, message: 'Password updated successfully' });
-});
-
-module.exports = router;
-`;
-
-const target = path.join(__dirname, 'routes', 'auth.js');
-fs.writeFileSync(target, content, 'utf8');
-console.log('SUCCESS: routes/auth.js has been rewritten');
-console.log('Lines:', content.split('\\n').length);
-// Verify no requireAuth
-if (content.includes('requireAuth')) {
-  console.log('ERROR: requireAuth still present!');
-} else {
-  console.log('VERIFIED: No requireAuth - circular dependency removed');
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!roles.includes(req.user.role)) {
+      if (req.path.startsWith('/api/')) return res.status(403).json({ error: `Access denied – requires role: ${roles.join(' or ')}` });
+      if (req.user.role === 'student') return res.redirect('/student-home');
+      return res.redirect('/dashboard');
+    }
+    next();
+  };
 }
+
+function extractBearer(req) {
+  const auth = req.headers.authorization;
+  if (auth && auth.startsWith('Bearer ')) return auth.slice(7);
+  return null;
+}
+
+module.exports = { requireAuth, requireRole };

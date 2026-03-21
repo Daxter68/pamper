@@ -1,12 +1,23 @@
-const express = require('express');
-const bcrypt  = require('bcryptjs');
-const jwt     = require('jsonwebtoken');
+const express  = require('express');
+const bcrypt   = require('bcryptjs');
+const jwt      = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const supabase = require('../config/supabase');
-const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 const COOKIE_OPTS = { httpOnly: true, sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 }; // 8h
+
+// ── Inline auth check (avoids circular dependency with middleware/auth.js) ──
+function verifyToken(req, res) {
+  const token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+  if (!token) { res.status(401).json({ error: 'Unauthorized – please sign in' }); return null; }
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET);
+  } catch(e) {
+    res.status(401).json({ error: 'Session expired – please sign in again' });
+    return null;
+  }
+}
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -142,25 +153,50 @@ router.post('/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// GET /api/auth/me – return current user from token
-router.get('/me', requireAuth, (req, res) => {
-  res.json({ user: req.user });
+// GET /api/auth/me – return current user (fresh from DB, not just JWT)
+router.get('/me', async (req, res) => {
+  const decoded = verifyToken(req, res);
+  if (!decoded) return; // verifyToken already sent the error response
+
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('id, full_name, email, role, student_id, grade, qr_code, is_blacklisted')
+    .eq('id', decoded.id)
+    .single();
+
+  if (error || !user)
+    return res.status(404).json({ error: 'User not found' });
+
+  res.json({
+    user: {
+      id:        user.id,
+      name:      user.full_name,
+      email:     user.email,
+      role:      user.role,
+      studentId: user.student_id,
+      grade:     user.grade,
+      qrCode:    user.qr_code,
+    }
+  });
 });
 
 // POST /api/auth/change-password
-router.post('/change-password', requireAuth, async (req, res) => {
+router.post('/change-password', async (req, res) => {
+  const decoded = verifyToken(req, res);
+  if (!decoded) return;
+
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword || newPassword.length < 8)
     return res.status(400).json({ error: 'New password must be at least 8 characters' });
 
   const { data: user } = await supabase
-    .from('users').select('password_hash').eq('id', req.user.id).single();
+    .from('users').select('password_hash').eq('id', decoded.id).single();
 
   const valid = await bcrypt.compare(currentPassword, user.password_hash);
   if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
 
   const hash = await bcrypt.hash(newPassword, 12);
-  await supabase.from('users').update({ password_hash: hash, updated_at: new Date() }).eq('id', req.user.id);
+  await supabase.from('users').update({ password_hash: hash, updated_at: new Date() }).eq('id', decoded.id);
 
   res.json({ success: true, message: 'Password updated successfully' });
 });
