@@ -64,17 +64,6 @@ Open http://localhost:3000
 
 ---
 
-## Demo Accounts
-| Role      | Email                              | Password     |
-|-----------|------------------------------------|--------------|
-| Admin     | admin@pamper.edu                   | Admin@123    |
-| Security  | security@pamper.edu                | Admin@123    |
-| Student   | john.brown@student.pamper.edu      | Admin@123    |
-
-> ⚠ Change all passwords immediately after first login in a production environment.
-
----
-
 ## Pages & Routes
 
 ### Frontend Pages
