@@ -109,7 +109,7 @@ function renderQR(containerId, value, size = 180) {
 // ── Utilities ───────────────────────────────────
 function initials(name) {
   if (!name) return '?';
-  return name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  return String(name).trim().split(' ').map(w => w[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) || '?';
 }
 
 function capitalise(str = '') {
@@ -201,10 +201,12 @@ function injectSidebar(activePage) {
   if (el) el.innerHTML = getSidebarHTML(activePage);
 }
 
+
 // ── Mobile sidebar toggle ───────────────────────────────
 (function setupMobileSidebar() {
   function inject() {
     if (document.getElementById('sb-toggle-btn')) return;
+
     const btn = document.createElement('button');
     btn.id = 'sb-toggle-btn';
     btn.className = 'sb-toggle';

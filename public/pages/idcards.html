@@ -128,6 +128,36 @@
   .id-card { width: 85.6mm !important; height: 53.98mm !important; border-radius: 3mm !important; }
   .id-card * { -webkit-print-color-adjust: exact !important; }
 }
+
+/* ── Mobile layout fixes ── */
+@media (max-width: 900px) {
+  /* Stack the two panels vertically */
+  .idc-layout { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 640px) {
+  /* Topbar: wrap onto two rows */
+  .topbar { height: auto !important; padding: 10px 12px 10px 54px !important; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .topbar h2 { font-size: 13.5px; width: auto; }
+  .topbar-r { flex-wrap: wrap; gap: 6px; width: 100%; }
+  .topbar-r .btn { font-size: 12px; padding: 6px 11px; }
+  .topbar-r #print-btn { order: -1; width: 100%; justify-content: center; }
+
+  /* Page padding */
+  .page { padding: 12px; }
+
+  /* Colour swatches — allow wrap */
+  .colour-grid { flex-wrap: wrap !important; }
+
+  /* Card grid preview */
+  .card-grid { grid-template-columns: 1fr !important; justify-items: center; }
+
+  /* Student selector list */
+  .student-list { max-height: 240px !important; }
+
+  /* Preview card itself — scale down to fit */
+  .id-card-preview { transform: scale(0.88); transform-origin: top left; }
+}
 </style>
 </head>
 <body>

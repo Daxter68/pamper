@@ -137,6 +137,25 @@
 .att-wrap { max-height: 400px; overflow-y: auto; }
 
 @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── Mobile layout ── */
+@media (max-width: 900px) {
+  .student-layout { display: flex !important; flex-direction: column !important; gap: 16px; }
+}
+@media (max-width: 640px) {
+  .stats-row { grid-template-columns: repeat(3, 1fr) !important; gap: 8px; }
+  .stat-card { padding: 14px 10px; }
+  .sv { font-size: 22px; }
+  .sl { font-size: 9.5px; }
+  .id-card-header { padding: 22px 18px 16px; }
+  .student-avatar { width: 52px; height: 52px; font-size: 18px; }
+  .qr-section h3 { font-size: 11px; }
+  .att-table-wrap { max-height: 280px; }
+}
+@media (max-width: 400px) {
+  .stats-row { grid-template-columns: 1fr 1fr !important; gap: 8px; }
+  .checkin-btns { grid-template-columns: 1fr !important; gap: 8px; }
+}
 </style>
 </head>
 <body>
