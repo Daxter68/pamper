@@ -136,7 +136,7 @@
 injectSidebar('profile');
 
 async function loadProfile() {
-  const { user } = await initAuth();
+  const user = await initAuth();
 
   document.getElementById('pf-av').textContent     = initials(user.name);
   document.getElementById('pf-name').textContent   = user.name;

@@ -8,8 +8,9 @@
 <link rel="icon" type="image/png" href="/images/Logo30x50.png">
 
 <style>
-.role-tabs{display:flex;gap:0;border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px;}
-.rtab{flex:1;padding:10px 8px;border:none;background:var(--surface-2);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);border-right:1px solid var(--border);}
+.role-tabs{display:flex;gap:0;border:1.5px solid var(--border);border-radius:var(--r);overflow-x:auto;overflow-y:hidden;margin-bottom:20px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.role-tabs::-webkit-scrollbar{display:none;}
+.rtab{flex:0 0 auto;min-width:90px;padding:10px 10px;border:none;background:var(--surface-2);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);border-right:1px solid var(--border);}
 .rtab:last-child{border-right:none;}
 .rtab svg{width:14px;height:14px;stroke:currentColor;flex-shrink:0;}
 .rtab.on{background:var(--teal);color:#fff;}

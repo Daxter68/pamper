@@ -87,6 +87,26 @@ body{font-family:var(--font);background:var(--navy);min-height:100vh;display:fle
 .btn-login:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(14,138,124,.55);}
 .btn-login:disabled{opacity:.6;transform:none;}
 .form-note{text-align:center;margin-top:18px;font-size:11px;color:rgba(255,255,255,.18);font-family:var(--mono);}
+@media (max-width:700px) {
+  body { flex-direction:column; }
+  .brand-panel {
+    width:100%; padding:28px 24px 22px;
+    flex-shrink:0;
+  }
+  .brand-headline h2 { font-size:26px; }
+  .brand-stats { margin-top:20px; }
+  .bstat { padding:10px 12px; }
+  .bstat strong { font-size:16px; }
+  .brand-footer { display:none; }
+  .form-panel { padding:24px 20px 32px; flex:1; }
+  .form-title { font-size:22px; }
+  .form-sub { font-size:13px; margin-bottom:18px; }
+  .role-tabs { margin-bottom:18px; }
+  .btn-login { padding:13px; font-size:14px; }
+  /* Kiosk link floats above form on mobile — reattach inline */
+  .kiosk-link-float { position:static !important; transform:none !important;
+    display:block; margin-bottom:16px; text-align:center; }
+}
 </style>
 </head>
 <body>
@@ -98,7 +118,7 @@ body{font-family:var(--font);background:var(--navy);min-height:100vh;display:fle
     </div>
     <div class="brand-headline">
       <h2>Campus<br><em>Attendance</em><br>Secured.</h2>
-      <p>QR-based tracking for Moneague College: fast, contactless, and reliable.</p>
+      <p>QR-based tracking for Moneague College — fast, contactless, and reliable.</p>
     </div>
     <div class="brand-stats">
       <div class="bstat"><strong>350+</strong><span>Students</span></div>
@@ -158,25 +178,6 @@ body{font-family:var(--font);background:var(--navy);min-height:100vh;display:fle
 
     <p class="form-note" style="margin-top:18px;">PAMPER · ALL SESSIONS ARE LOGGED · BETA 2026</p>
   </div>
-</div>
-
-<!-- Optional quick access for students who just want to check in without logging in -->
-<div style="text-align:center;margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.1);">
-  <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:10px;">
-    Just need to check in?
-  </p>
-  <a href="/checkin" style="
-    display:inline-block;
-    padding:11px 32px;
-    background:rgba(14,138,124,.15);
-    border:1.5px solid rgba(14,138,124,.3);
-    border-radius:9px;
-    color:#1ab5a4;
-    font-weight:700;
-    font-size:14px;
-    text-decoration:none;
-    transition:all .2s;
-  ">→ Go to Check-In Kiosk</a>
 </div>
 
 <script>

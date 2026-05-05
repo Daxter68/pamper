@@ -107,7 +107,8 @@ function renderQR(containerId, value, size = 180) {
 }
 
 // ── Utilities ───────────────────────────────────
-function initials(name = '') {
+function initials(name) {
+  if (!name) return '?';
   return name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
@@ -202,78 +203,39 @@ function injectSidebar(activePage) {
 
 // ── Mobile sidebar toggle ───────────────────────────────
 (function setupMobileSidebar() {
-  // Inject hamburger button and overlay once DOM is ready
   function inject() {
-    // Only inject once
     if (document.getElementById('sb-toggle-btn')) return;
-
-    // Hamburger button
     const btn = document.createElement('button');
     btn.id = 'sb-toggle-btn';
     btn.className = 'sb-toggle';
     btn.setAttribute('aria-label', 'Open menu');
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="3" y1="6"  x2="21" y2="6"/>
-      <line x1="3" y1="12" x2="21" y2="12"/>
-      <line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>`;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`;
     document.body.appendChild(btn);
 
-    // Overlay
     const overlay = document.createElement('div');
     overlay.id = 'sb-overlay';
     overlay.className = 'sb-overlay';
     document.body.appendChild(overlay);
 
-    // Toggle sidebar open/closed
-    function openSidebar() {
-      const sb = document.querySelector('.sidebar');
-      if (sb) sb.classList.add('open');
-      overlay.classList.add('open');
-      btn.setAttribute('aria-label', 'Close menu');
-      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"/>
-        <line x1="6"  y1="6" x2="18" y2="18"/>
-      </svg>`;
-    }
-
     function closeSidebar() {
-      const sb = document.querySelector('.sidebar');
-      if (sb) sb.classList.remove('open');
+      document.querySelector('.sidebar')?.classList.remove('open');
       overlay.classList.remove('open');
-      btn.setAttribute('aria-label', 'Open menu');
-      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="3" y1="6"  x2="21" y2="6"/>
-        <line x1="3" y1="12" x2="21" y2="12"/>
-        <line x1="3" y1="18" x2="21" y2="18"/>
-      </svg>`;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`;
+    }
+    function openSidebar() {
+      document.querySelector('.sidebar')?.classList.add('open');
+      overlay.classList.add('open');
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
     }
 
     btn.addEventListener('click', () => {
-      const sb = document.querySelector('.sidebar');
-      if (sb && sb.classList.contains('open')) closeSidebar();
-      else openSidebar();
+      document.querySelector('.sidebar')?.classList.contains('open') ? closeSidebar() : openSidebar();
     });
-
-    // Close when clicking overlay
     overlay.addEventListener('click', closeSidebar);
-
-    // Close when a nav link is clicked (mobile UX)
-    document.addEventListener('click', e => {
-      if (e.target.closest('.nav-a') && window.innerWidth <= 900) {
-        closeSidebar();
-      }
-    });
-
-    // Close on resize to desktop
-    window.addEventListener('resize', () => {
-      if (window.innerWidth > 900) closeSidebar();
-    });
+    document.addEventListener('click', e => { if (e.target.closest('.nav-a') && window.innerWidth <= 900) closeSidebar(); });
+    window.addEventListener('resize', () => { if (window.innerWidth > 900) closeSidebar(); });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inject);
-  } else {
-    inject();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject);
+  else inject();
 })();
