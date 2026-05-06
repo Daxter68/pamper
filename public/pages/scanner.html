@@ -4,38 +4,55 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PAMPER Scan Attendance</title>
 <link rel="stylesheet" href="/css/app.css">
+<!-- Low-level Html5Qrcode — no scanner wrapper, no injected UI -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link rel="icon" type="image/png" href="/images/Logo30x50.png">
 
 <style>
 .scan-layout{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start;}
 .scan-card{background:var(--navy);border-radius:16px;border:1px solid rgba(14,138,124,.2);overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.22);}
-.sc-head{padding:18px 22px;border-bottom:1px solid rgba(14,138,124,.15);display:flex;align-items:center;justify-content:space-between;}
+.sc-head{padding:18px 22px;border-bottom:1px solid rgba(14,138,124,.15);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 .sc-head h3{font-size:15px;font-weight:700;color:#fff;}
 .sc-head p{font-size:12px;color:rgba(26,181,164,.6);margin-top:2px;}
 .sc-body{padding:22px;display:flex;flex-direction:column;align-items:center;gap:16px;}
-.cam-frame{position:relative;width:100%;max-width:420px;border-radius:12px;overflow:hidden;background:#000;}
+
+/* Camera frame */
+.cam-frame{position:relative;width:100%;max-width:420px;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:1/1;}
+
+/* Library renders video into #reader — hide everything else it injects */
+#reader{width:100%;height:100%;}
+#reader video{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important;}
+#reader>*:not(video){display:none!important;}
+
+/* Decorative overlay */
 .scan-overlay{position:absolute;inset:0;pointer-events:none;z-index:10;}
 .scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--teal-light) 30%,var(--teal) 50%,var(--teal-light) 70%,transparent);box-shadow:0 0 10px var(--teal);animation:scanline 2.4s ease-in-out infinite;top:15%;}
 @keyframes scanline{0%{top:10%;opacity:1}50%{top:88%;opacity:1}100%{top:10%;opacity:1}}
-.corner{position:absolute;width:24px;height:24px;border-color:var(--teal-light);border-style:solid;}
-.c-tl{top:10px;left:10px;border-width:2px 0 0 2px;}
-.c-tr{top:10px;right:10px;border-width:2px 2px 0 0;}
-.c-bl{bottom:10px;left:10px;border-width:0 0 2px 2px;}
-.c-br{bottom:10px;right:10px;border-width:0 2px 2px 0;}
-#reader{width:100%;}
-#reader__dashboard_section_csr button{margin-top:0!important;padding:10px 22px!important;background:var(--teal)!important;color:#fff!important;border:none!important;border-radius:8px!important;font-family:var(--font)!important;font-size:13px!important;font-weight:600!important;cursor:pointer!important;}
+.corner{position:absolute;width:28px;height:28px;border-color:var(--teal-light);border-style:solid;}
+.c-tl{top:12px;left:12px;border-width:2.5px 0 0 2.5px;}
+.c-tr{top:12px;right:12px;border-width:2.5px 2.5px 0 0;}
+.c-bl{bottom:12px;left:12px;border-width:0 0 2.5px 2.5px;}
+.c-br{bottom:12px;right:12px;border-width:0 2.5px 2.5px 0;}
+
+/* State overlay — shown before camera ready / on error */
+.cam-state{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(11,30,36,.92);}
+.cam-state svg{width:36px;height:36px;stroke:var(--teal);opacity:.7;}
+.cam-state p{color:rgba(255,255,255,.6);font-size:13px;font-family:var(--mono);text-align:center;padding:0 20px;line-height:1.55;}
+
 .hint-txt{font-family:var(--mono);font-size:11.5px;color:rgba(26,181,164,.5);text-align:center;}
+
+/* Scan type toggle */
+.scan-type-toggle{display:flex;gap:6px;}
+.stt-btn{flex:1;padding:8px 14px;border-radius:8px;border:1.5px solid rgba(14,138,124,.25);background:transparent;color:rgba(255,255,255,.45);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.stt-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+
 /* Manual input */
 .manual-form{background:var(--navy-mid,#0f2830);border-top:1px solid rgba(14,138,124,.15);padding:18px 22px;display:flex;gap:10px;}
 .manual-form input{flex:1;padding:10px 14px;background:rgba(255,255,255,.07);border:1.5px solid rgba(14,138,124,.2);border-radius:8px;color:#fff;font-family:var(--mono);font-size:13px;outline:none;}
 .manual-form input:focus{border-color:var(--teal);}
 .manual-form input::placeholder{color:rgba(255,255,255,.25);}
-.scan-type-toggle{display:flex;gap:6px;margin-bottom:8px;}
-.stt-btn{flex:1;padding:8px;border-radius:8px;border:1.5px solid rgba(14,138,124,.25);background:transparent;color:rgba(255,255,255,.45);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;}
-.stt-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);}
 
-/* Result cards */
+/* Result panels */
 .ls-card{padding:18px;text-align:center;}
 .ls-av{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dark));margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;}
 .ls-name{font-size:15px;font-weight:700;color:var(--text);}
@@ -47,36 +64,19 @@
 .log-sid{font-family:var(--mono);font-size:11px;color:var(--muted);}
 .log-time{font-family:var(--mono);font-size:11.5px;color:var(--muted);}
 
-/* ── Mobile layout ── */
-@media (max-width: 900px) {
-  .scan-layout { display: flex !important; flex-direction: column !important; gap: 14px; }
+/* ── Mobile ── */
+@media(max-width:900px){
+  .scan-layout{display:flex!important;flex-direction:column!important;gap:14px;}
+  .scan-side-panels{display:grid!important;grid-template-columns:1fr 1fr;gap:12px;}
 }
-@media (max-width: 640px) {
-  .sc-head { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .sc-head > div:last-child { width: 100%; }
-  .scan-type-toggle { width: 100%; margin: 0 !important; }
-  .stt-btn { flex: 1; }
-  .cam-frame { border-radius: 10px; }
-  .manual-form { padding: 14px 16px; gap: 8px; }
-  .manual-form input { font-size: 12px; }
-  /* html5-qrcode library internal overrides for mobile */
-  #reader { width: 100% !important; }
-  #reader__scan_region { min-height: 240px; }
-  #reader__dashboard_section_csr button {
-    width: 100% !important;
-    padding: 12px !important;
-    font-size: 14px !important;
-  }
-  #reader__dashboard_section_swaplink { font-size: 12px !important; }
-  /* Right panels side-by-side when stacked */
-  .scan-side-panels {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
+@media(max-width:640px){
+  .sc-head{flex-direction:column;align-items:flex-start;}
+  .scan-type-toggle{width:100%;}
+  .manual-form{padding:14px 16px;gap:8px;}
+  .manual-form input{font-size:12px;}
 }
-@media (max-width: 480px) {
-  .scan-side-panels { grid-template-columns: 1fr !important; }
+@media(max-width:480px){
+  .scan-side-panels{grid-template-columns:1fr!important;}
 }
 </style>
 </head>
@@ -94,38 +94,66 @@
 
   <div class="page">
     <div class="scan-layout">
-      <!-- Scanner -->
+
+      <!-- ── Scanner card ── -->
       <div class="scan-card">
         <div class="sc-head">
-          <div><h3>QR Code Scanner</h3><p>Point camera at student ID card</p></div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <div class="scan-type-toggle" style="margin:0;">
-              <button class="stt-btn active" data-type="in"  onclick="setScanType(this)">Check IN</button>
-              <button class="stt-btn"        data-type="out" onclick="setScanType(this)">Check OUT</button>
-            </div>
+          <div>
+            <h3>QR Code Scanner</h3>
+            <p>Point camera at student ID card</p>
+          </div>
+          <div class="scan-type-toggle">
+            <button class="stt-btn active" data-type="in"  onclick="setScanType(this)">Check IN</button>
+            <button class="stt-btn"        data-type="out" onclick="setScanType(this)">Check OUT</button>
           </div>
         </div>
+
         <div class="sc-body">
           <div class="cam-frame">
+            <!-- Html5Qrcode renders video here — we hide everything else it adds -->
+            <div id="reader"></div>
+
+            <!-- Our decorative UI on top of the video -->
             <div class="scan-overlay">
               <div class="scan-line"></div>
               <div class="corner c-tl"></div><div class="corner c-tr"></div>
               <div class="corner c-bl"></div><div class="corner c-br"></div>
             </div>
-            <div id="reader"></div>
+
+            <!-- Shown while camera loads or on error -->
+            <div class="cam-state" id="cam-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              <p id="cam-msg">Starting camera…</p>
+              <button class="btn btn-outline btn-sm" id="cam-retry" style="display:none" onclick="startScanner()">
+                Retry Camera
+              </button>
+            </div>
           </div>
-          <p class="hint-txt">// align QR within frame — camera permission required</p>
+
+          <p class="hint-txt">// align QR within frame — auto-detects on scan</p>
         </div>
+
         <div class="manual-form">
-          <input type="text" id="manual-qr" placeholder="or type QR code / student ID manually…" onkeydown="if(event.key==='Enter')manualScan()">
+          <input type="text" id="manual-qr"
+                 placeholder="or type QR code / student ID manually…"
+                 onkeydown="if(event.key==='Enter')manualScan()">
           <button class="btn btn-primary btn-sm" onclick="manualScan()">Scan</button>
         </div>
       </div>
 
-      <!-- Right panels -->
+      <!-- ── Result panels ── -->
       <div class="scan-side-panels" style="display:flex;flex-direction:column;gap:16px;">
         <div class="panel">
-          <div class="ph"><h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Last Scanned</h3></div>
+          <div class="ph">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>Last Scanned
+            </h3>
+          </div>
           <div class="ls-card" id="lastScan">
             <div class="ls-av">—</div>
             <div class="ls-name">Awaiting scan…</div>
@@ -135,12 +163,19 @@
         </div>
 
         <div class="panel">
-          <div class="ph"><h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Today's Log</h3></div>
-          <div id="scan-log" style="max-height:240px;overflow-y:auto;">
+          <div class="ph">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>Today's Log
+            </h3>
+          </div>
+          <div id="scan-log" style="max-height:280px;overflow-y:auto;">
             <div style="text-align:center;padding:18px;color:var(--muted);font-size:13px;">No scans yet</div>
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
@@ -150,17 +185,31 @@
 injectSidebar('scanner');
 initAuth(['admin','security']);
 
-let scanType = 'in';
-let scanning = false;
+// ── State ────────────────────────────────────────────────────────
+let scanType  = 'in';
+let scanning  = false;   // cooldown after a successful scan
+let qrScanner = null;    // Html5Qrcode instance
 
+// ── Scan type toggle ─────────────────────────────────────────────
 function setScanType(btn) {
   document.querySelectorAll('.stt-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   scanType = btn.dataset.type;
 }
 
+// ── Camera state overlay ─────────────────────────────────────────
+function setCamState(msg, showRetry = false) {
+  document.getElementById('cam-msg').textContent   = msg;
+  document.getElementById('cam-retry').style.display = showRetry ? '' : 'none';
+  document.getElementById('cam-state').style.display  = 'flex';
+}
+function hideCamState() {
+  document.getElementById('cam-state').style.display = 'none';
+}
+
+// ── Last-scan UI ─────────────────────────────────────────────────
 function updateLastScan(student, time, type) {
-  const ini = initials(student.name || student.full_name || '?');
+  const ini = initials(student.name || student.full_name || '');
   document.getElementById('lastScan').innerHTML = `
     <div class="ls-av">${ini}</div>
     <div class="ls-name">${student.name || student.full_name}</div>
@@ -183,34 +232,32 @@ function prependLog(student, time, type) {
   log.insertBefore(row, log.firstChild);
 }
 
+// ── Scan processing ──────────────────────────────────────────────
 async function processScan(qrCode) {
   if (scanning) return;
   scanning = true;
-  // Briefly pause the scanner to avoid double-reads
-  try { scanner.pause(true); } catch(e) {}
+  try { qrScanner.pause(true); } catch(e) {}
+
   try {
-    const res = await api.post('/api/attendance/scan', { qr_code: qrCode, scan_type: scanType });
+    const res  = await api.post('/api/attendance/scan', { qr_code: qrCode, scan_type: scanType });
     const time = formatTime(res.scan_time);
     updateLastScan(res.student, time, scanType);
     prependLog(res.student, time, scanType);
+    const first = (res.student.name || res.student.full_name || '').split(' ')[0];
     toast(
-      scanType === 'in' ? `Welcome, ${res.student.name.split(' ')[0]}!` : `Goodbye, ${res.student.name.split(' ')[0]}!`,
+      scanType === 'in' ? `Welcome, ${first}!` : `Goodbye, ${first}!`,
       `${scanType === 'in' ? 'Checked in' : 'Checked out'} at ${time}`,
       'ok'
     );
   } catch(e) {
-    const msg = e.message;
-    if (msg.includes('BLACKLISTED')) {
-      toast('⚠ Blacklisted Student!', 'Security alert logged — contact admin', 'err');
-    } else if (msg.includes('DUPLICATE')) {
-      toast('Already recorded', msg, 'warn');
-    } else {
-      toast('Scan failed', msg, 'err');
-    }
+    const msg = e.message || '';
+    if (msg.includes('BLACKLISTED')) toast('⚠ Blacklisted Student!', 'Security alert logged — contact admin', 'err');
+    else if (msg.includes('DUPLICATE')) toast('Already recorded', msg, 'warn');
+    else toast('Scan failed', msg, 'err');
   } finally {
     setTimeout(() => {
       scanning = false;
-      try { scanner.resume(); } catch(e) {}
+      try { qrScanner.resume(); } catch(e) {}
     }, 2000);
   }
 }
@@ -222,32 +269,65 @@ function manualScan() {
   document.getElementById('manual-qr').value = '';
 }
 
-// ── QR Scanner init ──────────────────────────────────────────────
-// Detect mobile for rear-camera default
-const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+// ── Camera bootstrap (low-level Html5Qrcode) ─────────────────────
+// We use Html5Qrcode directly — NOT Html5QrcodeScanner.
+// This means no injected library UI, no "Launching Camera…" button,
+// no camera dropdown. Just the raw video stream in our #reader div.
+async function startScanner() {
+  // Clean up any existing instance
+  if (qrScanner) {
+    try { await qrScanner.stop(); } catch(e) {}
+    // Clear anything the library left inside #reader
+    document.getElementById('reader').innerHTML = '';
+    qrScanner = null;
+  }
 
-const scannerConfig = {
-  fps: 10,
-  qrbox: isMobile ? { width: 240, height: 240 } : 280,
-  rememberLastUsedCamera: true,
-  aspectRatio: isMobile ? 1.0 : 1.333,
-  showTorchButtonIfSupported: true,
-  // Prefer rear camera on mobile
-  videoConstraints: isMobile
-    ? { facingMode: { ideal: 'environment' } }
-    : {}
-};
+  setCamState('Starting camera…');
+  qrScanner = new Html5Qrcode('reader', { verbose: false });
 
-let scanner = new Html5QrcodeScanner('reader', scannerConfig, /* verbose= */ false);
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-scanner.render(
-  // Success callback — (decodedText, decodedResult)
-  function onScanSuccess(decodedText) {
-    processScan(decodedText);
-  },
-  // Error callback — suppress console spam
-  function onScanFailure() {}
-);
+  // qrbox as a function so it scales to whatever the video frame ends up being
+  const config = {
+    fps: 12,
+    qrbox: function(viewfinderWidth, viewfinderHeight) {
+      const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+      const boxSize = Math.floor(minEdge * 0.7);
+      return { width: boxSize, height: boxSize };
+    },
+    aspectRatio: 1.0,
+    disableFlip: false,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+  };
+
+  // Attempt order: rear → ideal rear → any camera
+  const attempts = [
+    isMobile ? { facingMode: { exact: 'environment' } } : { facingMode: 'user' },
+    { facingMode: { ideal: 'environment' } },
+    {}   // let browser pick
+  ];
+
+  for (const constraint of attempts) {
+    try {
+      await qrScanner.start(
+        constraint,
+        config,
+        (decodedText) => processScan(decodedText),
+        () => {}   // per-frame "no QR found" — suppress
+      );
+      hideCamState();
+      return;   // success — stop trying
+    } catch(err) {
+      // Try next constraint
+    }
+  }
+
+  // All attempts failed
+  setCamState('Camera access denied or unavailable.\nPlease allow camera permission in your browser and try again.', true);
+}
+
+// Start on load
+startScanner();
 </script>
 </body>
 </html>

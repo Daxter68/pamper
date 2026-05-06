@@ -37,7 +37,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .mtab:hover:not(.on){background:rgba(255,255,255,.04);color:rgba(255,255,255,.6);}
 .panel{display:none;}.panel.show{display:block;animation:fadeIn .2s ease;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.scanner-wrap{background:#000;border-radius:11px;overflow:hidden;position:relative;margin-bottom:10px;}
+.scanner-wrap{background:#000;border-radius:11px;overflow:hidden;position:relative;margin-bottom:10px;aspect-ratio:1/1;}
 .corners{position:absolute;inset:0;pointer-events:none;z-index:10;}
 .scanline{position:absolute;left:8%;right:8%;height:2px;background:linear-gradient(90deg,transparent,var(--teal-light) 30%,var(--teal) 50%,var(--teal-light) 70%,transparent);box-shadow:0 0 8px var(--teal);animation:sl 2.2s ease-in-out infinite;}
 @keyframes sl{0%{top:10%}50%{top:88%}100%{top:10%}}
@@ -45,9 +45,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .c.tl{top:8px;left:8px;border-width:2px 0 0 2px;}.c.tr{top:8px;right:8px;border-width:2px 2px 0 0;}
 .c.bl{bottom:8px;left:8px;border-width:0 0 2px 2px;}.c.br{bottom:8px;right:8px;border-width:0 2px 2px 0;}
 #qr-reader{width:100%;}
-#qr-reader__dashboard_section_csr button{margin:8px auto !important;padding:8px 20px !important;background:var(--teal) !important;color:#fff !important;border:none !important;border-radius:7px !important;font-family:var(--font) !important;font-size:12.5px !important;font-weight:600 !important;cursor:pointer !important;display:block !important;}
-#qr-reader__dashboard_section_csr select{padding:5px 9px !important;border:1.5px solid rgba(14,138,124,.3) !important;border-radius:6px !important;font-family:var(--font) !important;background:rgba(255,255,255,.07) !important;color:rgba(255,255,255,.7) !important;}
-#qr-reader__header_message{color:rgba(255,255,255,.36) !important;font-size:11.5px !important;font-family:var(--font) !important;padding:7px !important;text-align:center !important;}
+/* Low-level Html5Qrcode: hide everything the library injects except the video */
+#qr-reader{width:100%;height:100%;}
+#qr-reader video{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important;}
+#qr-reader>*:not(video){display:none!important;}
 .scan-hint{text-align:center;font-family:var(--mono);font-size:10.5px;color:rgba(26,181,164,.38);margin-bottom:2px;}
 /* Face panel */
 .face-camera-wrap{background:#000;border-radius:11px;overflow:hidden;position:relative;margin-bottom:12px;border:2px solid rgba(14,138,124,.2);transition:border-color .3s;}
@@ -459,15 +460,57 @@ function setMethod(m) {
   resetResult();
 }
 
-function startScanner() {
-  if (qrScanner) return;
-  qrScanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 220, height: 220 }, rememberLastUsedCamera: true, aspectRatio: 1.0 });
-  qrScanner.render(code => { if (!scanning) processCheckin({ qr_code: code }, 'qr'); }, () => {});
+// ── QR Scanner (low-level Html5Qrcode — no injected UI) ──────────
+async function startScanner() {
+  if (qrScanner) return;   // already running
+
+  // Clear any leftover DOM from a previous session
+  document.getElementById('qr-reader').innerHTML = '';
+
+  qrScanner = new Html5Qrcode('qr-reader', { verbose: false });
+
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+  const config = {
+    fps: 12,
+    qrbox: function(w, h) {
+      const side = Math.floor(Math.min(w, h) * 0.72);
+      return { width: side, height: side };
+    },
+    aspectRatio: 1.0,
+    disableFlip: false,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+  };
+
+  const onSuccess = (decodedText) => {
+    if (!scanning) processCheckin({ qr_code: decodedText }, 'qr');
+  };
+
+  // Attempt order: rear → ideal rear → any camera
+  const attempts = [
+    isMobile ? { facingMode: { exact: 'environment' } } : { facingMode: 'user' },
+    { facingMode: { ideal: 'environment' } },
+    {}
+  ];
+
+  for (const constraint of attempts) {
+    try {
+      await qrScanner.start(constraint, config, onSuccess, () => {});
+      return;  // success
+    } catch(e) {
+      // try next
+    }
+  }
+
+  // All failed — clean up so user can retry
+  qrScanner = null;
+  console.warn('[QR] Could not start camera — check browser permissions');
 }
 
-function stopScanner() {
+async function stopScanner() {
   if (!qrScanner) return;
-  try { qrScanner.clear(); } catch(e) {}
+  try { await qrScanner.stop(); } catch(e) {}
+  document.getElementById('qr-reader').innerHTML = '';
   qrScanner = null;
 }
 
@@ -486,6 +529,8 @@ function submitID() {
 async function processCheckin(payload, via) {
   if (scanning) return;
   scanning = true;
+  // Pause QR scanner to prevent double-reads during API call
+  if (qrScanner) { try { qrScanner.pause(true); } catch(e) {} }
 
   if (via === 'id') {
     const btn = document.getElementById('sbtn');
@@ -530,7 +575,10 @@ async function processCheckin(payload, via) {
       document.getElementById('sico').classList.remove('spin');
       setType(scanType);
     }
-    setTimeout(() => { scanning = false; }, 3000);
+    setTimeout(() => {
+      scanning = false;
+      if (qrScanner) { try { qrScanner.resume(); } catch(e) {} }
+    }, 3000);
   }
 }
 
