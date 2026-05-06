@@ -350,20 +350,20 @@ function buildExportData() {
     rows     = reportData.records.map(r =>
       [r.student_id||'—', r.full_name, r.grade||'—', r.time_in||'—', r.time_out||'—', r.status]);
     filename = `daily_${reportData.date}`;
-    title    = `Daily Attendance Report — ${reportData.date}`;
+    title    = `Daily Attendance Report : ${reportData.date}`;
   } else if (reportType === 'weekly') {
     headers  = ['Date','Day','Present','Absent','Rate'];
     rows     = reportData.days.map(d =>
       [d.date, d.day, d.present, d.absent, `${d.rate}%`]);
     filename = `weekly_${(reportData.range||'report').replace(/\s/g,'_')}`;
-    title    = `Weekly Attendance Report — ${reportData.range||''}`;
+    title    = `Weekly Attendance Report : ${reportData.range||''}`;
   } else {
     headers  = ['Student ID','Name','Grade','Days Present','Days Absent','Rate %'];
     rows     = reportData.records.map(r =>
       [r.student_id||'—', r.full_name, r.grade||'—', r.days_present, r.days_absent, r.rate]);
     const mNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     filename = `monthly_${reportData.year}_${reportData.month}`;
-    title    = `Monthly Attendance Report — ${mNames[reportData.month]||''} ${reportData.year||''}`;
+    title    = `Monthly Attendance Report : ${mNames[reportData.month]||''} ${reportData.year||''}`;
   }
 
   return { headers, rows, filename, title };
@@ -454,7 +454,7 @@ async function exportPDF() {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('PAMPER — Moneague College', 12, 7.5);
+  doc.text('PAMPER : Moneague College', 12, 7.5);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text('Attendance Management System', 12, 13);
