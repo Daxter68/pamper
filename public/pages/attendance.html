@@ -153,6 +153,27 @@ function renderTable(data) {
     </tr>`).join('');
 }
 
+
+// ── Mobile-safe file download ─────────────────────────────────────
+// iOS Safari ignores a.click() unless the anchor is in the DOM.
+// On iOS we fall back to opening the blob URL in a new tab if needed.
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  // Must be in the DOM for iOS Safari
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  // Small delay before cleanup so iOS has time to register the click
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 300);
+}
+
 function exportCSV() {
   if (!cachedData.length) { toast('No data to export','','warn'); return; }
   const headers = ['Student ID','Name','Grade','Date','Time In','Time Out','Status'];
@@ -161,13 +182,7 @@ function exportCSV() {
       .map(v => `"${v}"`).join(',')
   );
   const csv = [headers.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `attendance_${dp.value||today()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadFile(csv, `attendance_${dp.value||today()}.csv`, 'text/csv');
   toast('Export ready', `attendance_${dp.value||today()}.csv`, 'ok');
 }
 

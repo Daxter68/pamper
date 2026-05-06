@@ -478,14 +478,29 @@ async function deleteUser(){
   finally{setLoading(btn,false);}
 }
 
+
+// ── Mobile-safe file download ─────────────────────────────────────
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 300);
+}
+
 function exportUsers(){
   if(!allUsers.length){toast('No data','Load users first','warn');return;}
   const h=['Name','Role','Student ID','Email','Grade','QR Status','Blacklisted','Created'];
   const r=allUsers.map(u=>[u.full_name,u.role,u.student_id||'',u.email,u.grade||'',u.qr_status||'',u.is_blacklisted?'Yes':'No',u.created_at?new Date(u.created_at).toLocaleDateString():'']);
   const csv=[h,...r].map(row=>row.map(v=>`"${v}"`).join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`pamper_users_${new Date().toISOString().split('T')[0]}.csv`;a.click();
+  downloadFile(csv, `pamper_users_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
   URL.revokeObjectURL(url);
   toast('Export ready',`${allUsers.length} users exported`,'ok');
 }

@@ -321,6 +321,27 @@ function renderMonthlyResults(data) {
     </tr>`).join('');
 }
 
+
+// ── Mobile-safe file download ─────────────────────────────────────
+// iOS Safari ignores a.click() unless the anchor is in the DOM.
+// On iOS we fall back to opening the blob URL in a new tab if needed.
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  // Must be in the DOM for iOS Safari
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  // Small delay before cleanup so iOS has time to register the click
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 300);
+}
+
 function exportReport(format) {
   if (!reportData) { toast('No report generated','Run a report first','warn'); return; }
 
@@ -341,11 +362,7 @@ function exportReport(format) {
   }
 
   const csv  = [headers.join(','), ...rows.map(r => r.map(v=>`"${v}"`).join(','))].join('\n');
-  const blob = new Blob([csv], { type:'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = `${filename}.csv`; a.click();
-  URL.revokeObjectURL(url);
+  downloadFile(csv, `${filename}.csv`, 'text/csv');
   toast('Export ready', `${filename}.csv`, 'ok');
 }
 

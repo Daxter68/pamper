@@ -46,6 +46,38 @@
 .log-name{font-size:13px;font-weight:600;color:var(--text);}
 .log-sid{font-family:var(--mono);font-size:11px;color:var(--muted);}
 .log-time{font-family:var(--mono);font-size:11.5px;color:var(--muted);}
+
+/* ── Mobile layout ── */
+@media (max-width: 900px) {
+  .scan-layout { display: flex !important; flex-direction: column !important; gap: 14px; }
+}
+@media (max-width: 640px) {
+  .sc-head { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .sc-head > div:last-child { width: 100%; }
+  .scan-type-toggle { width: 100%; margin: 0 !important; }
+  .stt-btn { flex: 1; }
+  .cam-frame { border-radius: 10px; }
+  .manual-form { padding: 14px 16px; gap: 8px; }
+  .manual-form input { font-size: 12px; }
+  /* html5-qrcode library internal overrides for mobile */
+  #reader { width: 100% !important; }
+  #reader__scan_region { min-height: 240px; }
+  #reader__dashboard_section_csr button {
+    width: 100% !important;
+    padding: 12px !important;
+    font-size: 14px !important;
+  }
+  #reader__dashboard_section_swaplink { font-size: 12px !important; }
+  /* Right panels side-by-side when stacked */
+  .scan-side-panels {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
+@media (max-width: 480px) {
+  .scan-side-panels { grid-template-columns: 1fr !important; }
+}
 </style>
 </head>
 <body>
@@ -91,7 +123,7 @@
       </div>
 
       <!-- Right panels -->
-      <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="scan-side-panels" style="display:flex;flex-direction:column;gap:16px;">
         <div class="panel">
           <div class="ph"><h3><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Last Scanned</h3></div>
           <div class="ls-card" id="lastScan">
@@ -154,6 +186,8 @@ function prependLog(student, time, type) {
 async function processScan(qrCode) {
   if (scanning) return;
   scanning = true;
+  // Briefly pause the scanner to avoid double-reads
+  try { scanner.pause(true); } catch(e) {}
   try {
     const res = await api.post('/api/attendance/scan', { qr_code: qrCode, scan_type: scanType });
     const time = formatTime(res.scan_time);
@@ -174,7 +208,10 @@ async function processScan(qrCode) {
       toast('Scan failed', msg, 'err');
     }
   } finally {
-    setTimeout(() => { scanning = false; }, 2000);
+    setTimeout(() => {
+      scanning = false;
+      try { scanner.resume(); } catch(e) {}
+    }, 2000);
   }
 }
 
@@ -185,9 +222,32 @@ function manualScan() {
   document.getElementById('manual-qr').value = '';
 }
 
-// Init QR scanner
-let scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 240, rememberLastUsedCamera: true });
-scanner.render(code => processScan(code));
+// ── QR Scanner init ──────────────────────────────────────────────
+// Detect mobile for rear-camera default
+const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+const scannerConfig = {
+  fps: 10,
+  qrbox: isMobile ? { width: 240, height: 240 } : 280,
+  rememberLastUsedCamera: true,
+  aspectRatio: isMobile ? 1.0 : 1.333,
+  showTorchButtonIfSupported: true,
+  // Prefer rear camera on mobile
+  videoConstraints: isMobile
+    ? { facingMode: { ideal: 'environment' } }
+    : {}
+};
+
+let scanner = new Html5QrcodeScanner('reader', scannerConfig, /* verbose= */ false);
+
+scanner.render(
+  // Success callback — (decodedText, decodedResult)
+  function onScanSuccess(decodedText) {
+    processScan(decodedText);
+  },
+  // Error callback — suppress console spam
+  function onScanFailure() {}
+);
 </script>
 </body>
 </html>
