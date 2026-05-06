@@ -107,7 +107,6 @@ select.fsel:focus,input[type=date].fsel:focus,input[type=number].fsel:focus{bord
 <div class="main">
   <div class="topbar">
     <h2>Attendance Reports</h2>
-    <div class="topbar-r"><span class="chip chip-teal chip-mono">BETA</span></div>
   </div>
 
   <div class="page">
@@ -184,11 +183,11 @@ select.fsel:focus,input[type=date].fsel:focus,input[type=number].fsel:focus{bord
         <div class="exp-ico ei-csv"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
         <div><div class="exp-title">Export CSV</div><div class="exp-sub">Raw data spreadsheet</div></div>
       </div>
-      <div class="exp-card" onclick="toast('PDF export','Coming in next iteration','warn')">
+      <div class="exp-card" onclick="exportReport('pdf')">
         <div class="exp-ico ei-pdf"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
         <div><div class="exp-title">Export PDF</div><div class="exp-sub">Formatted printable report</div></div>
       </div>
-      <div class="exp-card" onclick="toast('Excel export','Coming in next iteration','warn')">
+      <div class="exp-card" onclick="exportReport('excel')">
         <div class="exp-ico ei-xls"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg></div>
         <div><div class="exp-title">Export Excel</div><div class="exp-sub">Spreadsheet with formatting</div></div>
       </div>
@@ -342,28 +341,196 @@ function downloadFile(content, filename, mimeType) {
   }, 300);
 }
 
-function exportReport(format) {
-  if (!reportData) { toast('No report generated','Run a report first','warn'); return; }
-
-  let rows = [], headers = [], filename = 'pamper_report';
+// ── Build the data rows for any export format ────────────────────
+function buildExportData() {
+  let rows = [], headers = [], filename = 'pamper_report', title = '';
 
   if (reportType === 'daily') {
-    headers = ['Student ID','Name','Grade','Time In','Time Out','Status'];
-    rows = reportData.records.map(r => [r.student_id||'',r.full_name,r.grade||'',r.time_in,r.time_out,r.status]);
+    headers  = ['Student ID','Name','Grade','Time In','Time Out','Status'];
+    rows     = reportData.records.map(r =>
+      [r.student_id||'—', r.full_name, r.grade||'—', r.time_in||'—', r.time_out||'—', r.status]);
     filename = `daily_${reportData.date}`;
+    title    = `Daily Attendance Report — ${reportData.date}`;
   } else if (reportType === 'weekly') {
-    headers = ['Date','Day','Present','Absent','Rate'];
-    rows = reportData.days.map(d => [d.date,d.day,d.present,d.absent,`${d.rate}%`]);
-    filename = `weekly_${reportData.range?.replace(' ','_')||'report'}`;
+    headers  = ['Date','Day','Present','Absent','Rate'];
+    rows     = reportData.days.map(d =>
+      [d.date, d.day, d.present, d.absent, `${d.rate}%`]);
+    filename = `weekly_${(reportData.range||'report').replace(/\s/g,'_')}`;
+    title    = `Weekly Attendance Report — ${reportData.range||''}`;
   } else {
-    headers = ['Student ID','Name','Grade','Days Present','Days Absent','Rate %'];
-    rows = reportData.records.map(r => [r.student_id||'',r.full_name,r.grade||'',r.days_present,r.days_absent,r.rate]);
+    headers  = ['Student ID','Name','Grade','Days Present','Days Absent','Rate %'];
+    rows     = reportData.records.map(r =>
+      [r.student_id||'—', r.full_name, r.grade||'—', r.days_present, r.days_absent, r.rate]);
+    const mNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     filename = `monthly_${reportData.year}_${reportData.month}`;
+    title    = `Monthly Attendance Report — ${mNames[reportData.month]||''} ${reportData.year||''}`;
   }
 
-  const csv  = [headers.join(','), ...rows.map(r => r.map(v=>`"${v}"`).join(','))].join('\n');
-  downloadFile(csv, `${filename}.csv`, 'text/csv');
-  toast('Export ready', `${filename}.csv`, 'ok');
+  return { headers, rows, filename, title };
+}
+
+// ── CSV ───────────────────────────────────────────────────────────
+function exportCSV() {
+  const { headers, rows, filename } = buildExportData();
+  const csv = [
+    headers.join(','),
+    ...rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
+  ].join('\r\n');
+  downloadFile(csv, `${filename}.csv`, 'text/csv;charset=utf-8;');
+  toast('CSV ready', `${filename}.csv`, 'ok');
+}
+
+// ── Excel via SheetJS ─────────────────────────────────────────────
+async function exportExcel() {
+  toast('Preparing Excel…', 'Loading library', 'ok');
+  const { headers, rows, filename, title } = buildExportData();
+
+  // Load SheetJS on demand
+  if (!window.XLSX) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // Title row + blank row + headers + data
+  const wsData = [
+    [title],
+    [],
+    headers,
+    ...rows
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Column widths
+  ws['!cols'] = headers.map((h, i) => {
+    const maxLen = Math.max(h.length, ...rows.map(r => String(r[i]||'').length));
+    return { wch: Math.min(maxLen + 2, 40) };
+  });
+
+  // Style the title row (bold, merged)
+  if (!ws['!merges']) ws['!merges'] = [];
+  ws['!merges'].push({ s:{r:0,c:0}, e:{r:0,c:headers.length-1} });
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+  XLSX.writeFile(wb, `${filename}.xlsx`);
+  toast('Excel ready', `${filename}.xlsx`, 'ok');
+}
+
+// ── PDF via jsPDF + AutoTable ─────────────────────────────────────
+async function exportPDF() {
+  toast('Preparing PDF…', 'Loading library', 'ok');
+  const { headers, rows, filename, title } = buildExportData();
+
+  // Load jsPDF on demand
+  if (!window.jspdf) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  // Load AutoTable plugin
+  if (!window.jspdf?.API?.autoTable) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  // Header bar
+  doc.setFillColor(14, 138, 124);
+  doc.rect(0, 0, 297, 18, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PAMPER — Moneague College', 12, 7.5);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Attendance Management System', 12, 13);
+
+  // Report title
+  doc.setTextColor(15, 37, 32);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(title, 12, 26);
+
+  // Subtitle: generated date + record count
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 130, 125);
+  doc.text(`Generated: ${new Date().toLocaleString('en-US', {dateStyle:'medium',timeStyle:'short'})}   ·   ${rows.length} record${rows.length!==1?'s':''}`, 12, 32);
+
+  // Status colour helper for Status column
+  const statusColIdx = headers.indexOf('Status');
+
+  doc.autoTable({
+    head: [headers],
+    body: rows,
+    startY: 36,
+    margin: { left: 12, right: 12 },
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+      lineColor: [218, 234, 231],
+      lineWidth: 0.3,
+      textColor: [15, 37, 32],
+    },
+    headStyles: {
+      fillColor: [14, 138, 124],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    alternateRowStyles: { fillColor: [242, 250, 248] },
+    didParseCell: function(data) {
+      // Colour Status column cells
+      if (data.section === 'body' && data.column.index === statusColIdx) {
+        const val = String(data.cell.raw||'').toLowerCase();
+        if (val === 'present') {
+          data.cell.styles.textColor = [16, 185, 129];
+          data.cell.styles.fontStyle = 'bold';
+        } else if (val === 'absent') {
+          data.cell.styles.textColor = [239, 68, 68];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
+  });
+
+  // Footer on each page
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7.5);
+    doc.setTextColor(160, 180, 175);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`PAMPER Attendance System · Moneague College · Page ${i} of ${pageCount}`,
+      12, doc.internal.pageSize.height - 6);
+    doc.text(new Date().toLocaleDateString('en-US', {dateStyle:'medium'}),
+      285, doc.internal.pageSize.height - 6, { align: 'right' });
+  }
+
+  doc.save(`${filename}.pdf`);
+  toast('PDF ready', `${filename}.pdf`, 'ok');
+}
+
+// ── Router ────────────────────────────────────────────────────────
+function exportReport(format) {
+  if (!reportData) { toast('No report generated', 'Run a report first', 'warn'); return; }
+  if (format === 'csv')   exportCSV();
+  else if (format === 'excel') exportExcel();
+  else if (format === 'pdf')   exportPDF();
 }
 
 // Auto-generate on load
