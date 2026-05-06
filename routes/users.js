@@ -14,7 +14,7 @@ router.get('/', requireRole('admin', 'security'), async (req, res) => {
 
   let query = supabase
     .from('users')
-    .select('id, student_id, full_name, email, role, qr_code, qr_status, is_blacklisted, created_at', { count: 'exact' })
+    .select('id, student_id, full_name, email, role, grade, qr_code, qr_status, is_blacklisted, created_at', { count: 'exact' })
     .order('full_name');
 
   if (role)   query = query.eq('role', role);
@@ -32,7 +32,7 @@ router.get('/', requireRole('admin', 'security'), async (req, res) => {
 router.get('/:id', requireRole('admin'), async (req, res) => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, student_id, full_name, email, role, qr_code, qr_status, is_blacklisted, blacklist_reason, created_at')
+    .select('id, student_id, full_name, email, role, grade, qr_code, qr_status, is_blacklisted, blacklist_reason, created_at')
     .eq('id', req.params.id)
     .single();
 
@@ -76,7 +76,7 @@ router.patch('/:id', requireRole('admin'), async (req, res) => {
 
   const { data, error } = await supabase
     .from('users').update(updates).eq('id', req.params.id)
-    .select('id, student_id, full_name, email, role, qr_status').single();
+    .select('id, student_id, full_name, email, role, grade, qr_status').single();
 
   if (error) return res.status(400).json({ error: error.message });
   res.json(data);
