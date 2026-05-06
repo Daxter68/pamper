@@ -112,6 +112,66 @@
 .logo-upload-area input { display: none; }
 
 /* ── Print styles ── */
+
+/* ── Mobile layout ── */
+@media (max-width: 900px) {
+  /* Stack design panel above cards panel */
+  .idc-layout { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 640px) {
+  /* Topbar: wrap onto two rows on small screens */
+  .topbar {
+    height: auto !important;
+    min-height: 52px;
+    padding: 10px 12px 10px 54px !important;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .topbar h2 { font-size: 13px; }
+  .topbar-r {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+  /* Print button: full width, first */
+  #print-btn {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+    font-size: 13px;
+    padding: 9px 14px;
+  }
+  /* Other buttons: share remaining width */
+  .topbar-r .btn-ghost,
+  .topbar-r .btn-outline { flex: 1; justify-content: center; font-size: 12px; padding: 7px 10px; }
+  /* Hide the admin chip on tiny screens */
+  .topbar-r .chip-mono { display: none; }
+
+  /* Page padding */
+  .page { padding: 12px; }
+
+  /* Colour swatches: allow wrap */
+  .colour-row { flex-wrap: wrap !important; gap: 8px !important; }
+
+  /* Student selector list: shorter on mobile */
+  .stu-list { max-height: 220px !important; }
+
+  /* ID card preview: scale down to fit */
+  #preview-card { transform-origin: top left; }
+
+  /* Card grid: centre single column */
+  .card-grid {
+    grid-template-columns: 1fr !important;
+    justify-items: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .topbar h2 { font-size: 12px; }
+}
 @media screen { #print-area { display: none; } }
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }

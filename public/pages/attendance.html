@@ -153,37 +153,31 @@ function renderTable(data) {
     </tr>`).join('');
 }
 
-
-// ── Mobile-safe file download ─────────────────────────────────────
-// iOS Safari ignores a.click() unless the anchor is in the DOM.
-// On iOS we fall back to opening the blob URL in a new tab if needed.
-function downloadFile(content, filename, mimeType) {
+// ── Mobile-safe download (iOS Safari requires anchor in DOM) ──────
+function triggerDownload(content, filename, mimeType) {
   const blob = new Blob([content], { type: mimeType });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
   a.download = filename;
-  // Must be in the DOM for iOS Safari
   a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
-  // Small delay before cleanup so iOS has time to register the click
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 300);
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
 }
 
 function exportCSV() {
-  if (!cachedData.length) { toast('No data to export','','warn'); return; }
+  if (!cachedData.length) { toast('No data to export','Load records first','warn'); return; }
   const headers = ['Student ID','Name','Grade','Date','Time In','Time Out','Status'];
   const rows = cachedData.map(r =>
     [r.student_id||'',r.full_name,r.grade||'',r.date,r.time_in||'',r.time_out||'',r.status]
-      .map(v => `"${v}"`).join(',')
+      .map(v => `"${String(v).replace(/"/g,'""')}"`)
+      .join(',')
   );
-  const csv = [headers.join(','), ...rows].join('\n');
-  downloadFile(csv, `attendance_${dp.value||today()}.csv`, 'text/csv');
-  toast('Export ready', `attendance_${dp.value||today()}.csv`, 'ok');
+  const csv      = [headers.join(','), ...rows].join('\r\n');
+  const filename = `attendance_${dp.value||today()}.csv`;
+  triggerDownload(csv, filename, 'text/csv;charset=utf-8;');
+  toast('Downloading', filename, 'ok');
 }
 
 loadRecords();

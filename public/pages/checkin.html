@@ -601,12 +601,39 @@ async function processCheckin(payload, via) {
   }
 
   try {
-    const res  = await fetch('/api/attendance/id-checkin', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ ...payload, scan_type: scanType })
-    });
-    const data = await res.json();
+    // Use absolute timeout to distinguish slow server from no server
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000); // 12s timeout
+
+    let res, data;
+    try {
+      res  = await fetch('/api/attendance/id-checkin', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ...payload, scan_type: scanType }),
+        signal:  controller.signal
+      });
+      clearTimeout(timeout);
+    } catch(fetchErr) {
+      clearTimeout(timeout);
+      // Distinguish abort (timeout) from true network failure
+      if (fetchErr.name === 'AbortError') {
+        showResult('err', 'Server Timeout', 'The server took too long to respond. Check your internet connection and try again.', '');
+      } else {
+        showResult('err', 'No Connection', 'Could not reach the server. Make sure you are connected to the internet.', '');
+      }
+      setQRStatus('Network error — check connection', 'err');
+      return;
+    }
+
+    // Try to parse JSON — server might have returned an HTML error page
+    try {
+      data = await res.json();
+    } catch(jsonErr) {
+      showResult('err', `Server Error (${res.status})`, `The server returned an unexpected response. Status: ${res.status} ${res.statusText}`, '');
+      setQRStatus('Server error ' + res.status, 'err');
+      return;
+    }
 
     if (res.ok) {
       setQRStatus('✓ ' + (data.name || 'Recorded') + ' — ' + (scanType === 'in' ? 'Checked in' : 'Checked out'), 'ok');
@@ -620,16 +647,20 @@ async function processCheckin(payload, via) {
         setTimeout(() => { document.getElementById('face-cam-wrap').className = 'face-camera-wrap'; }, 4000);
       }
     } else {
-      const e = data.error || '';
-      if      (e.includes('DUPLICATE'))    showResult('warn', 'Already Recorded',   data.message || e, '');
-      else if (e.includes('BLACKLISTED'))  showResult('err',  'Account Suspended',   'Contact administration.', '');
-      else if (e.includes('OUTSIDE_HOURS'))showResult('warn', 'Outside Hours',       data.message || e, '');
-      else if (e.includes('not found') || e.includes('not recognised')) showResult('err', 'Not Found', e, '');
-      else if (e.includes('disabled'))     showResult('warn', 'Disabled',            e, '');
-      else                                 showResult('err',  'Failed',              e || 'Something went wrong.', '');
+      const errCode = data.error || '';
+      const errMsg  = data.message || errCode || `HTTP ${res.status}`;
+      if      (errCode.includes('DUPLICATE'))     showResult('warn', 'Already Recorded',    data.message || errCode, '');
+      else if (errCode.includes('BLACKLISTED'))   showResult('err',  'Account Suspended',    'Contact administration.', '');
+      else if (errCode.includes('OUTSIDE_HOURS')) showResult('warn', 'Outside Hours',        data.message || errCode, '');
+      else if (res.status === 404)                showResult('err',  'QR Code Not Found',   'This QR code is not registered. Ask admin to check the student record.', '');
+      else if (res.status === 403)                showResult('err',  'Access Denied',        errMsg, '');
+      else if (res.status >= 500)                 showResult('err',  'Server Error',         `Server returned ${res.status}. Try again in a moment.`, '');
+      else                                        showResult('err',  'Check-in Failed',      errMsg, '');
+      setQRStatus('Check-in failed — ' + errMsg.slice(0, 40), 'err');
     }
   } catch(e) {
-    showResult('err', 'Connection Error', 'Could not reach the server. Check your connection.', '');
+    showResult('err', 'Unexpected Error', e.message || 'An unexpected error occurred. Please try again.', '');
+    setQRStatus('Error: ' + (e.message || 'unknown').slice(0, 40), 'err');
   } finally {
     if (via === 'id') {
       document.getElementById('sbtn').disabled = false;
