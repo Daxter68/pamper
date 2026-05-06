@@ -15,10 +15,9 @@
   width: 100%; height: 420px;
   background: var(--surface-2);
   position: relative; overflow: hidden;
-  touch-action: none;
 }
 /* CSS-drawn map placeholder / live map via Leaflet */
-#map { width: 100%; height: 100%; touch-action: none; }
+#map { width: 100%; height: 100%; }
 
 /* Settings panel */
 .settings-stack { display: flex; flex-direction: column; gap: 16px; }
@@ -95,20 +94,6 @@
 }
 .locate-btn svg { width: 15px; height: 15px; stroke: currentColor; }
 .locate-btn:hover { background: rgba(14,138,124,.18); }
-
-/* ── Mobile fixes ── */
-@media (max-width: 900px) {
-  .geo-grid { display: flex !important; flex-direction: column !important; gap: 14px; }
-  .map-frame { height: 340px !important; }
-  .settings-stack { gap: 12px; }
-  .coord-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-}
-@media (max-width: 640px) {
-  .map-frame { height: 280px !important; }
-  .coord-grid { grid-template-columns: 1fr; }
-  .time-grid  { grid-template-columns: 1fr; }
-  .radius-row input[type=range] { flex: 1; }
-}
 </style>
 <!-- Leaflet CSS for interactive map -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -261,7 +246,7 @@ let map, marker, circle;
 function initMap(lat, lng, radius) {
   if (map) { map.remove(); map = null; }
 
-  map = L.map('map', { tap: false, tapTolerance: 15 }).setView([lat, lng], 16);
+  map = L.map('map').setView([lat, lng], 16);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
@@ -445,7 +430,7 @@ function injectSidebar(active) {
     <aside class="sidebar">
       <div class="sb-beta">PAMPER · BETA v0.4</div>
       <div class="sb-brand">
-        <div class="sb-mark"><link rel="icon" type="image/png" href="/images/Logo30x50.png"></div>
+        <img src="/images/Logo30x50.png" alt="PAMPER" style="width:34px;height:auto;border-radius:6px;flex-shrink:0;">
         <div><div class="sb-name">PAMPER</div><div class="sb-ver">Admin Portal</div></div>
       </div>
       <nav class="sb-nav">
