@@ -34,10 +34,10 @@
 .card-logo svg { width: 16px; height: 16px; stroke: #fff; fill: none; }
 .card-school { font-size: 12px; font-weight: 800; color: #fff; letter-spacing: .5px; line-height: 1.2; }
 .card-tagline { font-size: 9.5px; color: rgba(255,255,255,.55); margin-top: 1px; }
-.card-body { padding: 12px 16px; display: flex; gap: 14px; align-items: flex-start; }
+.card-body { padding: 8px 12px; display: flex; gap: 10px; align-items: flex-start; }
 .card-qr { flex-shrink: 0; background: #fff; border-radius: 7px; padding: 5px; }
 .card-info { flex: 1; min-width: 0; }
-.card-name { font-size: 16px; font-weight: 800; color: #fff; line-height: 1.25; margin-bottom: 2px; word-break: break-word; }
+.card-name { font-size: 14px; font-weight: 800; color: #fff; line-height: 1.25; margin-bottom: 2px; word-break: break-word; }
 .card-role { font-size: 10px; color: rgba(255,255,255,.55); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
 .card-detail { display: flex; flex-direction: column; gap: 2px; }
 .card-detail-row { display: flex; gap: 6px; align-items: center; font-size: 10.5px; color: rgba(255,255,255,.65); }
@@ -128,36 +128,6 @@
   .id-card { width: 85.6mm !important; height: 53.98mm !important; border-radius: 3mm !important; }
   .id-card * { -webkit-print-color-adjust: exact !important; }
 }
-
-/* ── Mobile layout fixes ── */
-@media (max-width: 900px) {
-  /* Stack the two panels vertically */
-  .idc-layout { grid-template-columns: 1fr !important; }
-}
-
-@media (max-width: 640px) {
-  /* Topbar: wrap onto two rows */
-  .topbar { height: auto !important; padding: 10px 12px 10px 54px !important; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .topbar h2 { font-size: 13.5px; width: auto; }
-  .topbar-r { flex-wrap: wrap; gap: 6px; width: 100%; }
-  .topbar-r .btn { font-size: 12px; padding: 6px 11px; }
-  .topbar-r #print-btn { order: -1; width: 100%; justify-content: center; }
-
-  /* Page padding */
-  .page { padding: 12px; }
-
-  /* Colour swatches — allow wrap */
-  .colour-grid { flex-wrap: wrap !important; }
-
-  /* Card grid preview */
-  .card-grid { grid-template-columns: 1fr !important; justify-items: center; }
-
-  /* Student selector list */
-  .student-list { max-height: 240px !important; }
-
-  /* Preview card itself — scale down to fit */
-  .id-card-preview { transform: scale(0.88); transform-origin: top left; }
-}
 </style>
 </head>
 <body>
@@ -241,7 +211,7 @@
                     </div>
                   </div>
                   <div class="card-body">
-                    <div class="card-qr"><div id="prev-qr-el" style="width:72px;height:72px;"></div></div>
+                    <div class="card-qr"><div id="prev-qr-el" style="width:96px;height:96px;"></div></div>
                     <div class="card-info">
                       <div class="card-name" id="prev-name">Student Name</div>
                       <div class="card-role">Student</div>
@@ -387,7 +357,7 @@ function makePreviewQR() {
   if (!el) return;
   el.innerHTML = '';
   try {
-    new QRCode(el, { text: 'PAMPER-PREVIEW', width: 72, height: 72, correctLevel: QRCode.CorrectLevel.M });
+    new QRCode(el, { text: 'PAMPER-PREVIEW', width: 96, height: 96, correctLevel: QRCode.CorrectLevel.L });
     previewQRMade = true;
   } catch(e) {}
 }
@@ -506,7 +476,7 @@ function addCardToPreview(student) {
     const qrEl = card.querySelector(`#qr-${student.id}`);
     if (qrEl) {
       try {
-        new QRCode(qrEl, { text: student.qr_code, width: 72, height: 72, correctLevel: QRCode.CorrectLevel.M });
+        new QRCode(qrEl, { text: student.qr_code, width: 96, height: 96, correctLevel: QRCode.CorrectLevel.L });
       } catch(e) {}
     }
   }
@@ -521,7 +491,7 @@ function buildCardHTML(student, forPrint = false) {
     ? `<img src="${logoDataUrl}" style="width:100%;height:100%;object-fit:cover;">`
     : `<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>`;
   const qrPlaceholder = student.qr_code
-    ? `<div id="qr-${student.id}" style="width:72px;height:72px;"></div>`
+    ? `<div id="qr-${student.id}" style="width:96px;height:96px;"></div>`
     : `<div style="width:72px;height:72px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#999;background:#f0f0f0;border-radius:4px;">No QR</div>`;
 
   return `
@@ -597,7 +567,7 @@ async function printCards() {
     if (!el) { resolve(); return; }
     el.innerHTML = '';
     try {
-      new QRCode(el, { text: s.qr_code, width: 72, height: 72, correctLevel: QRCode.CorrectLevel.M });
+      new QRCode(el, { text: s.qr_code, width: 96, height: 96, correctLevel: QRCode.CorrectLevel.L });
       setTimeout(resolve, 200); // give QRCode time to render canvas
     } catch(e) { resolve(); }
   }));

@@ -109,6 +109,29 @@ input.idinput:focus{border-color:var(--teal);background:rgba(14,138,124,.1);}
 .footer a{color:rgba(14,138,124,.5);text-decoration:none;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{display:inline-block;animation:spin .7s linear infinite;}
+
+/* QR scan diagnostic */
+.qr-scan-status {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 8px; padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  font-family: var(--mono); font-size: 11px;
+  color: rgba(255,255,255,.4);
+  transition: border-color .3s, color .3s;
+}
+.qr-scan-status.ok   { border-color:rgba(16,185,129,.4); color:#6ee7b7; }
+.qr-scan-status.warn { border-color:rgba(245,158,11,.4); color:#fde68a; }
+.qr-scan-status.err  { border-color:rgba(239,68,68,.4);  color:#fca5a5; }
+.qss-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:currentColor; flex-shrink:0;
+  animation:qssPulse 1.6s ease-in-out infinite;
+}
+.qr-scan-status.ok  .qss-dot,
+.qr-scan-status.err .qss-dot { animation:none; }
+@keyframes qssPulse{0%,100%{opacity:1}50%{opacity:.2}}
 </style>
 </head>
 <body>
@@ -157,6 +180,10 @@ input.idinput:focus{border-color:var(--teal);background:rgba(14,138,124,.1);}
       <div id="qr-reader"></div>
     </div>
     <p class="scan-hint">// point camera at QR card &mdash; detects automatically</p>
+    <div id="qr-scan-status" class="qr-scan-status">
+      <span class="qss-dot"></span>
+      <span id="qss-txt">Starting camera…</span>
+    </div>
   </div>
 
   <!-- Face ID Panel -->
@@ -460,6 +487,29 @@ function setMethod(m) {
   resetResult();
 }
 
+
+// ── QR scan status display ────────────────────────────────────────
+let qrErrTimer = null;
+
+function setQRStatus(msg, type = '') {
+  const el  = document.getElementById('qr-scan-status');
+  const txt = document.getElementById('qss-txt');
+  if (!el || !txt) return;
+  el.className  = 'qr-scan-status' + (type ? ' ' + type : '');
+  txt.textContent = msg;
+}
+
+function classifyQRFrameError(err) {
+  const s = (err || '').toLowerCase();
+  if (s.includes('no qr code found') || s.includes('no multiformat'))
+    return null; // Normal empty frame
+  if (s.includes('parse error') || s.includes('could not decode'))
+    return { msg: 'Partial detection — move closer / hold still', type: 'warn' };
+  if (s.includes('not readable') || s.includes('image not readable'))
+    return { msg: 'Too dark or blurry — try better lighting', type: 'warn' };
+  return { msg: 'Scanner: ' + err.toString().slice(0, 55), type: 'warn' };
+}
+
 // ── QR Scanner (low-level Html5Qrcode — no injected UI) ──────────
 async function startScanner() {
   if (qrScanner) return;   // already running
@@ -480,7 +530,19 @@ async function startScanner() {
   };
 
   const onSuccess = (decodedText) => {
-    if (!scanning) processCheckin({ qr_code: decodedText }, 'qr');
+    if (!scanning) {
+      setQRStatus('Code found — verifying…', 'ok');
+      processCheckin({ qr_code: decodedText }, 'qr');
+    }
+  };
+
+  const onFailure = (errMsg) => {
+    clearTimeout(qrErrTimer);
+    qrErrTimer = setTimeout(() => {
+      const c = classifyQRFrameError(errMsg);
+      if (c) setQRStatus(c.msg, c.type);
+      else   setQRStatus('Scanning — hold QR card steady in frame');
+    }, 500);
   };
 
   // Attempt order: rear → ideal rear → any camera
@@ -492,7 +554,8 @@ async function startScanner() {
 
   for (const constraint of attempts) {
     try {
-      await qrScanner.start(constraint, config, onSuccess, () => {});
+      await qrScanner.start(constraint, config, onSuccess, onFailure);
+      setQRStatus('Camera ready — hold QR card in frame');
       return;  // success
     } catch(e) {
       // try next
@@ -546,6 +609,7 @@ async function processCheckin(payload, via) {
     const data = await res.json();
 
     if (res.ok) {
+      setQRStatus('✓ ' + (data.name || 'Recorded') + ' — ' + (scanType === 'in' ? 'Checked in' : 'Checked out'), 'ok');
       const t = new Date(data.scan_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const viaLabel = via === 'qr' ? 'QR Card' : via === 'face' ? 'Face ID' : 'Student ID';
       showResult('ok', data.name, data.message, `${data.studentId || ''} · ${t} · via ${viaLabel}`);
@@ -574,6 +638,7 @@ async function processCheckin(payload, via) {
     }
     setTimeout(() => {
       scanning = false;
+      setQRStatus('Ready — hold QR card in frame');
       if (qrScanner) { try { qrScanner.resume(); } catch(e) {} }
     }, 3000);
   }
