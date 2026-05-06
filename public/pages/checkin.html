@@ -179,7 +179,7 @@ input.idinput:focus{border-color:var(--teal);background:rgba(14,138,124,.1);}
       <div class="corners"><div class="scanline"></div><div class="c tl"></div><div class="c tr"></div><div class="c bl"></div><div class="c br"></div></div>
       <div id="qr-reader"></div>
     </div>
-    <p class="scan-hint">// point camera at QR card &mdash; detects automatically</p>
+    <p class="scan-hint">// point camera at QR card: detects automatically</p>
     <div id="qr-scan-status" class="qr-scan-status">
       <span class="qss-dot"></span>
       <span id="qss-txt">Starting camera…</span>
@@ -206,7 +206,7 @@ input.idinput:focus{border-color:var(--teal);background:rgba(14,138,124,.1);}
     </div>
 
     <p style="font-size:11px;color:rgba(255,255,255,.28);text-align:center;margin-top:-6px;margin-bottom:12px;">
-      Face matching runs entirely in your browser &mdash; no photos are sent anywhere
+      Face matching runs entirely in your browser: no photos are sent anywhere
     </p>
 
     <button class="sbtn" id="face-btn" onclick="triggerFaceScan()" disabled>
@@ -295,14 +295,14 @@ async function loadFaceModels() {
       await faceapi.nets.faceRecognitionNet.loadFromUri(attempt.src);
       modelsReady      = true;
       faceDetectorType = attempt.detector;
-      setModelNotice(true, 'Face ID ready &mdash; point your face at the camera');
+      setModelNotice(true, 'Face ID ready : point your face at the camera');
       document.getElementById('face-btn').disabled = false;
       return;
     } catch(e) {
       console.warn(`[Face] ${attempt.label} failed:`, e.message);
     }
   }
-  setModelNotice(false, 'Face ID unavailable &mdash; use QR or Student ID tab instead');
+  setModelNotice(false, 'Face ID unavailable : use QR or Student ID tab instead');
 }
 
 function setModelNotice(ok, msg) {
@@ -353,10 +353,10 @@ async function startFaceCamera() {
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    setFaceStatus('', 'Camera ready &mdash; look at the camera and press the button below');
+    setFaceStatus('', 'Camera ready : look at the camera and press the button below');
     // No background detection loop — runs only when button is pressed
   } catch(e) {
-    setFaceStatus('err', 'Camera access denied &mdash; allow camera permission and refresh');
+    setFaceStatus('err', 'Camera access denied : allow camera permission and refresh');
   }
 }
 
