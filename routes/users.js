@@ -14,11 +14,11 @@ router.get('/', requireRole('admin', 'security'), async (req, res) => {
 
   let query = supabase
     .from('users')
-    .select('id, student_id, full_name, email, role, grade, qr_code, qr_status, is_blacklisted, created_at', { count: 'exact' })
+    .select('id, student_id, full_name, email, role, qr_code, qr_status, is_blacklisted, created_at', { count: 'exact' })
     .order('full_name');
 
   if (role)   query = query.eq('role', role);
-  if (grade)  query = query.eq('grade', grade);
+  
   if (search) query = query.or(`full_name.ilike.%${search}%,student_id.ilike.%${search}%,email.ilike.%${search}%`);
 
   query = query.range(offset, offset + Number(limit) - 1);
@@ -32,7 +32,7 @@ router.get('/', requireRole('admin', 'security'), async (req, res) => {
 router.get('/:id', requireRole('admin'), async (req, res) => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, student_id, full_name, email, role, grade, qr_code, qr_status, is_blacklisted, blacklist_reason, created_at')
+    .select('id, student_id, full_name, email, role, qr_code, qr_status, is_blacklisted, blacklist_reason, created_at')
     .eq('id', req.params.id)
     .single();
 
@@ -42,17 +42,25 @@ router.get('/:id', requireRole('admin'), async (req, res) => {
 
 // POST /api/users – create user (admin only)
 router.post('/', requireRole('admin'), async (req, res) => {
-  const { full_name, email, password, role, grade, student_id } = req.body;
+  const { full_name, email, password, role, grade } = req.body;
   if (!full_name || !email || !password || !role)
     return res.status(400).json({ error: 'full_name, email, password, and role are required' });
 
   const password_hash = await bcrypt.hash(password, 12);
   const qr_code = uuidv4();
 
+  // Auto-generate student_id for students: ST + timestamp + random 3-digit suffix
+  let student_id = null;
+  if (role === 'student') {
+    const ts = Date.now().toString().slice(-6);
+    const rand = Math.floor(Math.random() * 900 + 100);
+    student_id = `ST${ts}${rand}`;
+  }
+
   const { data, error } = await supabase
     .from('users')
-    .insert({ full_name, email: email.toLowerCase(), password_hash, role, grade, student_id, qr_code })
-    .select('id, student_id, full_name, email, role, grade, qr_code, qr_status')
+    .insert({ full_name, email: email.toLowerCase(), password_hash, role, student_id, qr_code })
+    .select('id, student_id, full_name, email, role, qr_code, qr_status')
     .single();
 
   if (error) return res.status(400).json({ error: error.message });
@@ -61,14 +69,14 @@ router.post('/', requireRole('admin'), async (req, res) => {
 
 // PATCH /api/users/:id – update user
 router.patch('/:id', requireRole('admin'), async (req, res) => {
-  const allowed = ['full_name', 'email', 'grade', 'student_id', 'qr_status'];
+  const allowed = ['full_name', 'email', 'qr_status'];
   const updates = {};
   allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
   updates.updated_at = new Date();
 
   const { data, error } = await supabase
     .from('users').update(updates).eq('id', req.params.id)
-    .select('id, student_id, full_name, email, role, grade, qr_status').single();
+    .select('id, student_id, full_name, email, role, qr_status').single();
 
   if (error) return res.status(400).json({ error: error.message });
   res.json(data);

@@ -252,23 +252,7 @@ body {
           <label>Student ID</label>
           <div class="iw">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
-            <input type="text" id="studentId" placeholder="e.g. ST010" style="font-family:var(--mono);text-transform:uppercase;">
-          </div>
-        </div>
-        <div class="field">
-          <label>Grade / Class</label>
-          <div class="iw">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-            <select id="grade">
-              <option value="">Select grade…</option>
-              <option>Grade 5</option>
-              <option>Grade 6</option>
-              <option>Grade 7</option>
-              <option>Grade 8</option>
-              <option>Grade 9</option>
-              <option>Grade 10</option>
-              <option>Grade 11</option>
-            </select>
+            <input type="text" id="studentId" placeholder="Auto-generated upon registration" style="font-family:var(--mono);background:var(--surface,#f8fafc);color:#94a3b8;cursor:not-allowed;" readonly>
           </div>
         </div>
       </div>
@@ -326,7 +310,6 @@ body {
     } else {
       sf.classList.remove('show');
       document.getElementById('studentId').value = '';
-      document.getElementById('grade').value = '';
     }
   }
 
@@ -362,8 +345,6 @@ body {
     const email           = document.getElementById('email').value.trim();
     const password        = document.getElementById('password').value;
     const confirm_password= document.getElementById('confirmPassword').value;
-    const student_id      = document.getElementById('studentId').value.trim();
-    const grade           = document.getElementById('grade').value;
     const termsChecked    = document.getElementById('terms').checked;
 
     // Client-side validation
@@ -372,8 +353,6 @@ body {
     if (!password)           { showError('Please enter a password.'); return; }
     if (password.length < 8) { showError('Password must be at least 8 characters.'); return; }
     if (password !== confirm_password) { showError('Passwords do not match.'); return; }
-    if (selectedRole === 'student' && !student_id) { showError('Please enter your Student ID.'); return; }
-    if (selectedRole === 'student' && !grade)       { showError('Please select your grade.'); return; }
     if (!termsChecked)       { showError('Please agree to the terms to continue.'); return; }
 
     const btn = document.getElementById('signupBtn');
@@ -390,9 +369,7 @@ body {
           email,
           password,
           confirm_password,
-          role: selectedRole,
-          student_id: selectedRole === 'student' ? student_id : undefined,
-          grade:      selectedRole === 'student' ? grade      : undefined
+          role: selectedRole
         })
       });
 

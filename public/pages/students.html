@@ -91,16 +91,14 @@ select.fs:focus{border-color:var(--teal);}
         <input type="search" id="search" placeholder="Search name, ID or email…" oninput="loadUsers()">
       </div>
       <select class="fs" id="grade-filter" style="display:none;" onchange="loadUsers()">
-        <option value="">All Grades</option>
-        <option>Grade 5</option><option>Grade 6</option><option>Grade 7</option>
-        <option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option>
+        <option value="">All Years</option>
       </select>
     </div>
 
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Role</th><th>ID / Email</th><th>Grade</th><th>QR</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th>Name</th><th>Role</th><th>ID / Email</th><th>QR</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="user-body"><tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted);">Loading…</td></tr></tbody>
         </table>
       </div>
@@ -144,9 +142,8 @@ select.fs:focus{border-color:var(--teal);}
     </div>
     <div id="add-stu-fields">
       <div class="drow">
-        <div class="field"><label>Student ID <span style="color:var(--red)">*</span></label><input type="text" id="add-sid" placeholder="ST010" style="font-family:var(--mono);text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
-        <div class="field"><label>Grade</label>
-          <select id="add-grade"><option value="">Select…</option><option>Grade 5</option><option>Grade 6</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option></select>
+        <div class="field"><label>Student ID</label>
+          <input type="text" id="add-sid" placeholder="Auto-generated" style="font-family:var(--mono);background:var(--surface);color:var(--muted);cursor:not-allowed;" readonly title="Student ID is automatically generated">
         </div>
       </div>
     </div>
@@ -193,7 +190,6 @@ select.fs:focus{border-color:var(--teal);}
     <div id="vt-details">
       <div class="drow">
         <div><div class="dlbl">Student ID</div><div class="dval mono" id="v-sid">—</div></div>
-        <div><div class="dlbl">Grade</div><div class="dval" id="v-grade">—</div></div>
         <div><div class="dlbl">QR Status</div><div class="dval" id="v-qr">—</div></div>
       </div>
       <div class="drow">
@@ -220,10 +216,7 @@ select.fs:focus{border-color:var(--teal);}
         <div class="field"><label>Email</label><input type="email" id="e-email"></div>
       </div>
       <div class="drow" id="e-stu-fields">
-        <div class="field"><label>Student ID</label><input type="text" id="e-sid" style="font-family:var(--mono);"></div>
-        <div class="field"><label>Grade</label>
-          <select id="e-grade"><option value="">None</option><option>Grade 5</option><option>Grade 6</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option></select>
-        </div>
+        <div class="field"><label>Student ID</label><input type="text" id="e-sid" style="font-family:var(--mono);background:var(--surface);color:var(--muted);cursor:not-allowed;" readonly title="Student ID cannot be changed"></div>
       </div>
       <div class="field">
         <label>New Password <span style="color:var(--muted);font-weight:400;font-size:11px;">(leave blank to keep current)</span></label>
@@ -291,7 +284,7 @@ async function loadAllCounts(){
 function renderTable(data){
   const b=document.getElementById('user-body');
   document.getElementById('row-count').textContent=`${data.length} user${data.length!==1?'s':''}`;
-  if(!data.length){b.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted);">No users found</td></tr>`;return;}
+  if(!data.length){b.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--muted);">No users found</td></tr>`;return;}
   b.innerHTML=data.map(u=>{
     const ac=u.role==='admin'?'av-a':u.role==='security'?'av-e':'av-s';
     const bg=u.role==='admin'?'linear-gradient(135deg,#7c3aed,#5b21b6)':u.role==='security'?'linear-gradient(135deg,#1e5fa8,#1e40af)':'linear-gradient(135deg,var(--teal),var(--teal-dark))';
@@ -302,7 +295,6 @@ function renderTable(data){
       <td><div class="uc"><div class="uav ${ac}" style="background:${bg}">${initials(u.full_name)}</div><span style="font-weight:600;">${u.full_name}</span></div></td>
       <td><span class="rbadge rb-${u.role}">${capitalise(u.role)}</span></td>
       <td><div class="mono" style="font-size:12px;">${u.student_id||'—'}</div><div style="font-size:12px;color:var(--muted);">${u.email}</div></td>
-      <td style="font-size:13px;">${u.grade||'<span style="color:var(--muted);">—</span>'}</td>
       <td>${qrp}</td>
       <td>${stp}</td>
       <td><button class="btn btn-ghost btn-sm" onclick='openViewModal(decodeURIComponent("${sd}"))'>Manage</button></td>
@@ -319,8 +311,7 @@ function setRoleTab(btn){
 }
 
 function openAddModal(){
-  ['add-name','add-email','add-sid','add-pass','add-pass2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  document.getElementById('add-grade').value='';
+  ['add-name','add-email','add-pass','add-pass2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('pwfill').style.width='0%';
   setAddRole('student',document.querySelector('#add-role-tabs .rtab[data-role="student"]'));
   openModal('addModal');
@@ -349,18 +340,14 @@ async function addUser(){
   const email=document.getElementById('add-email').value.trim();
   const pass=document.getElementById('add-pass').value;
   const pass2=document.getElementById('add-pass2').value;
-  const sid=document.getElementById('add-sid').value.trim().toUpperCase();
-  const grade=document.getElementById('add-grade').value;
   if(!name){toast('Required','Full name is required','err');return;}
   if(!email){toast('Required','Email is required','err');return;}
   if(!pass||pass.length<8){toast('Weak password','Minimum 8 characters','err');return;}
   if(pass!==pass2){toast('Mismatch','Passwords do not match','err');return;}
-  if(addRole==='student'&&!sid){toast('Required','Student ID is required for students','err');return;}
   const btn=document.getElementById('add-btn');
   setLoading(btn,true);
   try{
     const body={full_name:name,email,password:pass,role:addRole};
-    if(addRole==='student'){body.student_id=sid;body.grade=grade;}
     await api.post('/api/users',body);
     toast(capitalise(addRole)+' added!',name+' can now log in to PAMPER','ok');
     closeModal('addModal');
@@ -381,7 +368,6 @@ function openViewModal(jsonStr){
   document.getElementById('v-rbadge').textContent=capitalise(u.role);
   document.getElementById('v-rbadge').className=`rbadge rb-${u.role}`;
   document.getElementById('v-sid').textContent=u.student_id||'—';
-  document.getElementById('v-grade').textContent=u.grade||'—';
   document.getElementById('v-qr').innerHTML=u.role==='student'?`<span class="pill ${u.qr_status==='active'?'pill-g':'pill-a'}">${u.qr_status||'—'}</span>`:'N/A';
   document.getElementById('v-status').innerHTML=u.is_blacklisted?'<span class="pill pill-r">Suspended</span>':'<span class="pill pill-g">Active</span>';
   document.getElementById('v-created').textContent=u.created_at?new Date(u.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
@@ -392,7 +378,6 @@ function openViewModal(jsonStr){
   document.getElementById('e-name').value=u.full_name;
   document.getElementById('e-email').value=u.email;
   document.getElementById('e-sid').value=u.student_id||'';
-  document.getElementById('e-grade').value=u.grade||'';
   document.getElementById('e-pass').value='';
   document.getElementById('e-stu-fields').style.display=u.role==='student'?'':'none';
   const blb=document.getElementById('bl-btn');
@@ -435,15 +420,12 @@ async function saveEdit(){
   if(!viewingUser)return;
   const name=document.getElementById('e-name').value.trim();
   const email=document.getElementById('e-email').value.trim();
-  const sid=document.getElementById('e-sid').value.trim();
-  const grade=document.getElementById('e-grade').value;
   const pass=document.getElementById('e-pass').value;
   if(!name||!email){toast('Required','Name and email are required','err');return;}
   if(pass&&pass.length<8){toast('Weak password','Minimum 8 characters','err');return;}
   const btn=document.getElementById('save-btn');setLoading(btn,true);
   try{
     const upd={full_name:name,email};
-    if(viewingUser.role==='student'){upd.student_id=sid;upd.grade=grade;}
     await api.patch(`/api/users/${viewingUser.id}`,upd);
     if(pass) await api.post(`/api/users/${viewingUser.id}/reset-password`,{new_password:pass});
     toast('Saved!',name+' has been updated','ok');
@@ -497,8 +479,8 @@ function downloadFile(content, filename, mimeType) {
 
 function exportUsers(){
   if(!allUsers.length){toast('No data','Load users first','warn');return;}
-  const h=['Name','Role','Student ID','Email','Grade','QR Status','Blacklisted','Created'];
-  const r=allUsers.map(u=>[u.full_name,u.role,u.student_id||'',u.email,u.grade||'',u.qr_status||'',u.is_blacklisted?'Yes':'No',u.created_at?new Date(u.created_at).toLocaleDateString():'']);
+  const h=['Name','Role','Student ID','Email','QR Status','Blacklisted','Created'];
+  const r=allUsers.map(u=>[u.full_name,u.role,u.student_id||'',u.email,u.qr_status||'',u.is_blacklisted?'Yes':'No',u.created_at?new Date(u.created_at).toLocaleDateString():'']);
   const csv=[h,...r].map(row=>row.map(v=>`"${v}"`).join(',')).join('\n');
   downloadFile(csv, `pamper_users_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
   URL.revokeObjectURL(url);
