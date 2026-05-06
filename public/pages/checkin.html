@@ -504,9 +504,9 @@ function classifyQRFrameError(err) {
   if (s.includes('no qr code found') || s.includes('no multiformat'))
     return null; // Normal empty frame
   if (s.includes('parse error') || s.includes('could not decode'))
-    return { msg: 'Partial detection — move closer / hold still', type: 'warn' };
+    return { msg: 'Partial detection - move closer / hold still', type: 'warn' };
   if (s.includes('not readable') || s.includes('image not readable'))
-    return { msg: 'Too dark or blurry — try better lighting', type: 'warn' };
+    return { msg: 'Too dark or blurry - try better lighting', type: 'warn' };
   return { msg: 'Scanner: ' + err.toString().slice(0, 55), type: 'warn' };
 }
 
@@ -541,7 +541,7 @@ async function startScanner() {
     qrErrTimer = setTimeout(() => {
       const c = classifyQRFrameError(errMsg);
       if (c) setQRStatus(c.msg, c.type);
-      else   setQRStatus('Scanning — hold QR card steady in frame');
+      else   setQRStatus('Scanning - hold QR card steady in frame');
     }, 500);
   };
 
@@ -555,7 +555,7 @@ async function startScanner() {
   for (const constraint of attempts) {
     try {
       await qrScanner.start(constraint, config, onSuccess, onFailure);
-      setQRStatus('Camera ready — hold QR card in frame');
+      setQRStatus('Camera ready - hold QR card in frame');
       return;  // success
     } catch(e) {
       // try next
@@ -564,7 +564,7 @@ async function startScanner() {
 
   // All failed — clean up so user can retry
   qrScanner = null;
-  console.warn('[QR] Could not start camera — check browser permissions');
+  console.warn('[QR] Could not start camera - check browser permissions');
 }
 
 async function stopScanner() {
