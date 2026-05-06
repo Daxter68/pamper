@@ -87,25 +87,16 @@ body{font-family:var(--font);background:var(--navy);min-height:100vh;display:fle
 .btn-login:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(14,138,124,.55);}
 .btn-login:disabled{opacity:.6;transform:none;}
 .form-note{text-align:center;margin-top:18px;font-size:11px;color:rgba(255,255,255,.18);font-family:var(--mono);}
+
 @media (max-width:700px) {
   body { flex-direction:column; }
-  .brand-panel {
-    width:100%; padding:28px 24px 22px;
-    flex-shrink:0;
-  }
+  .brand-panel { width:100%; padding:28px 24px 22px; }
   .brand-headline h2 { font-size:26px; }
   .brand-stats { margin-top:20px; }
   .bstat { padding:10px 12px; }
   .bstat strong { font-size:16px; }
   .brand-footer { display:none; }
   .form-panel { padding:24px 20px 32px; flex:1; }
-  .form-title { font-size:22px; }
-  .form-sub { font-size:13px; margin-bottom:18px; }
-  .role-tabs { margin-bottom:18px; }
-  .btn-login { padding:13px; font-size:14px; }
-  /* Kiosk link floats above form on mobile — reattach inline */
-  .kiosk-link-float { position:static !important; transform:none !important;
-    display:block; margin-bottom:16px; text-align:center; }
 }
 </style>
 </head>
@@ -118,7 +109,7 @@ body{font-family:var(--font);background:var(--navy);min-height:100vh;display:fle
     </div>
     <div class="brand-headline">
       <h2>Campus<br><em>Attendance</em><br>Secured.</h2>
-      <p>QR-based tracking for Moneague College: fast, contactless, and reliable.</p>
+      <p>QR-based tracking for Moneague College — fast, contactless, and reliable.</p>
     </div>
     <div class="brand-stats">
       <div class="bstat"><strong>350+</strong><span>Students</span></div>
@@ -163,6 +154,22 @@ body{font-family:var(--font);background:var(--navy);min-height:100vh;display:fle
       <label class="check-label"><input type="checkbox" id="remember"> Remember me</label>
       <a class="forgot" href="#">Forgot password?</a>
     </div>
+
+    <!-- Check-in kiosk shortcut — students don't need to log in -->
+    <a href="/checkin" style="display:flex;align-items:center;justify-content:center;gap:8px;
+      width:100%;padding:11px;margin-bottom:12px;
+      background:rgba(14,138,124,.12);
+      border:1.5px solid rgba(14,138,124,.35);
+      border-radius:9px;
+      color:var(--teal-light);font-family:var(--font);font-size:13.5px;font-weight:600;
+      text-decoration:none;transition:all .15s;"
+      onmouseover="this.style.background='rgba(14,138,124,.22)'"
+      onmouseout="this.style.background='rgba(14,138,124,.12)'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;">
+        <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+      </svg>
+      Student Check-In / Out (no login needed)
+    </a>
 
     <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
 

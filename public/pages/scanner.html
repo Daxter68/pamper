@@ -288,16 +288,14 @@ async function startScanner() {
   const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
   // qrbox as a function so it scales to whatever the video frame ends up being
+  // qrbox must be a plain object in html5-qrcode@2.3.8
+  // (function-based qrbox was unreliable in this version and breaks on Android)
   const config = {
-    fps: 12,
-    qrbox: function(viewfinderWidth, viewfinderHeight) {
-      const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-      const boxSize = Math.floor(minEdge * 0.7);
-      return { width: boxSize, height: boxSize };
-    },
+    fps: 15,
+    qrbox: { width: 250, height: 250 },
     aspectRatio: 1.0,
     disableFlip: false,
-    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    // No experimentalFeatures — conflicts with the library's scan loop on Android Chrome
   };
 
   // Attempt order: rear → ideal rear → any camera

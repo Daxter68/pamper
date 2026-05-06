@@ -471,15 +471,12 @@ async function startScanner() {
 
   const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
+  // qrbox as a plain object — required for html5-qrcode@2.3.8 reliability
   const config = {
-    fps: 12,
-    qrbox: function(w, h) {
-      const side = Math.floor(Math.min(w, h) * 0.72);
-      return { width: side, height: side };
-    },
+    fps: 15,
+    qrbox: { width: 220, height: 220 },
     aspectRatio: 1.0,
     disableFlip: false,
-    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
   };
 
   const onSuccess = (decodedText) => {
