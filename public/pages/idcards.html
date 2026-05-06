@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -277,7 +277,7 @@
                       <div class="card-role">Student</div>
                       <div class="card-detail">
                         <div class="card-detail-row"><span class="card-detail-label">ID</span><span class="card-detail-val" id="prev-id">ST001</span></div>
-                        <div class="card-detail-row"><span class="card-detail-label">GRD</span><span class="card-detail-val" id="prev-grade">Grade 9</span></div>
+                        <div class="card-detail-row"><span class="card-detail-label">GRD</span><span class="card-detail-val" id="prev-grade">Year 1</span></div>
                       </div>
                     </div>
                   </div>
@@ -307,9 +307,8 @@
                   style="width:100%;padding:8px 10px 8px 32px;border:1.5px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:13px;outline:none;">
               </div>
               <select id="grade-filter" onchange="filterStudents()" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:13px;outline:none;">
-                <option value="">All Grades</option>
-                <option>Grade 5</option><option>Grade 6</option><option>Grade 7</option>
-                <option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option>
+                <option value="">All Years</option>
+                <option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option>
               </select>
             </div>
             <div class="stu-list" id="stu-list">
@@ -464,7 +463,7 @@ function renderList() {
       <div class="stu-av">${initials(s.full_name)}</div>
       <div>
         <div class="stu-name">${s.full_name}</div>
-        <div class="stu-meta">${s.student_id||'No ID'} · ${s.grade||'No grade'}</div>
+        <div class="stu-meta">${s.student_id||'No ID'} · ${s.grade||'No year'}</div>
       </div>
       ${s.qr_code ? '' : '<span style="font-size:10px;color:var(--amber);margin-left:auto;">No QR</span>'}
     </div>`).join('');
@@ -570,7 +569,7 @@ function buildCardHTML(student, forPrint = false) {
           <div class="card-role">Student</div>
           <div class="card-detail">
             <div class="card-detail-row"><span class="card-detail-label">ID</span><span class="card-detail-val">${student.student_id||'—'}</span></div>
-            <div class="card-detail-row"><span class="card-detail-label">GRD</span><span class="card-detail-val">${student.grade||'—'}</span></div>
+            <div class="card-detail-row"><span class="card-detail-label">YR</span><span class="card-detail-val">${student.grade||'—'}</span></div>
           </div>
         </div>
       </div>

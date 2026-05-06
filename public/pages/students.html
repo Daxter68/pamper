@@ -92,6 +92,7 @@ select.fs:focus{border-color:var(--teal);}
       </div>
       <select class="fs" id="grade-filter" style="display:none;" onchange="loadUsers()">
         <option value="">All Years</option>
+        <option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option>
       </select>
     </div>
 
@@ -144,6 +145,9 @@ select.fs:focus{border-color:var(--teal);}
       <div class="drow">
         <div class="field"><label>Student ID</label>
           <input type="text" id="add-sid" placeholder="Auto-generated" style="font-family:var(--mono);background:var(--surface);color:var(--muted);cursor:not-allowed;" readonly title="Student ID is automatically generated">
+        </div>
+        <div class="field"><label>Year</label>
+          <select id="add-grade"><option value="">Select…</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
         </div>
       </div>
     </div>
@@ -217,6 +221,9 @@ select.fs:focus{border-color:var(--teal);}
       </div>
       <div class="drow" id="e-stu-fields">
         <div class="field"><label>Student ID</label><input type="text" id="e-sid" style="font-family:var(--mono);background:var(--surface);color:var(--muted);cursor:not-allowed;" readonly title="Student ID cannot be changed"></div>
+        <div class="field"><label>Year</label>
+          <select id="e-grade"><option value="">None</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option></select>
+        </div>
       </div>
       <div class="field">
         <label>New Password <span style="color:var(--muted);font-weight:400;font-size:11px;">(leave blank to keep current)</span></label>
@@ -340,6 +347,7 @@ async function addUser(){
   const email=document.getElementById('add-email').value.trim();
   const pass=document.getElementById('add-pass').value;
   const pass2=document.getElementById('add-pass2').value;
+  const grade=document.getElementById('add-grade')?document.getElementById('add-grade').value:'';
   if(!name){toast('Required','Full name is required','err');return;}
   if(!email){toast('Required','Email is required','err');return;}
   if(!pass||pass.length<8){toast('Weak password','Minimum 8 characters','err');return;}
@@ -348,6 +356,7 @@ async function addUser(){
   setLoading(btn,true);
   try{
     const body={full_name:name,email,password:pass,role:addRole};
+    if(addRole==='student'&&grade) body.grade=grade;
     await api.post('/api/users',body);
     toast(capitalise(addRole)+' added!',name+' can now log in to PAMPER','ok');
     closeModal('addModal');
@@ -378,6 +387,7 @@ function openViewModal(jsonStr){
   document.getElementById('e-name').value=u.full_name;
   document.getElementById('e-email').value=u.email;
   document.getElementById('e-sid').value=u.student_id||'';
+  document.getElementById('e-grade').value=u.grade||'';
   document.getElementById('e-pass').value='';
   document.getElementById('e-stu-fields').style.display=u.role==='student'?'':'none';
   const blb=document.getElementById('bl-btn');
@@ -420,12 +430,14 @@ async function saveEdit(){
   if(!viewingUser)return;
   const name=document.getElementById('e-name').value.trim();
   const email=document.getElementById('e-email').value.trim();
+  const grade=document.getElementById('e-grade').value;
   const pass=document.getElementById('e-pass').value;
   if(!name||!email){toast('Required','Name and email are required','err');return;}
   if(pass&&pass.length<8){toast('Weak password','Minimum 8 characters','err');return;}
   const btn=document.getElementById('save-btn');setLoading(btn,true);
   try{
     const upd={full_name:name,email};
+    if(viewingUser.role==='student'&&grade) upd.grade=grade;
     await api.patch(`/api/users/${viewingUser.id}`,upd);
     if(pass) await api.post(`/api/users/${viewingUser.id}/reset-password`,{new_password:pass});
     toast('Saved!',name+' has been updated','ok');

@@ -59,8 +59,8 @@ router.post('/', requireRole('admin'), async (req, res) => {
 
   const { data, error } = await supabase
     .from('users')
-    .insert({ full_name, email: email.toLowerCase(), password_hash, role, student_id, qr_code })
-    .select('id, student_id, full_name, email, role, qr_code, qr_status')
+    .insert({ full_name, email: email.toLowerCase(), password_hash, role, grade: role === 'student' ? grade : null, student_id, qr_code })
+    .select('id, student_id, full_name, email, role, grade, qr_code, qr_status')
     .single();
 
   if (error) return res.status(400).json({ error: error.message });
@@ -69,7 +69,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
 
 // PATCH /api/users/:id – update user
 router.patch('/:id', requireRole('admin'), async (req, res) => {
-  const allowed = ['full_name', 'email', 'qr_status'];
+  const allowed = ['full_name', 'email', 'grade', 'qr_status'];
   const updates = {};
   allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
   updates.updated_at = new Date();
