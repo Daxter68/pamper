@@ -49,12 +49,24 @@ router.post('/', requireRole('admin'), async (req, res) => {
   const password_hash = await bcrypt.hash(password, 12);
   const qr_code = uuidv4();
 
-  // Auto-generate student_id for students: ST + timestamp + random 3-digit suffix
+  // Auto-generate sequential student_id (e.g. ST006, ST007...)
   let student_id = null;
   if (role === 'student') {
-    const ts = Date.now().toString().slice(-6);
-    const rand = Math.floor(Math.random() * 900 + 100);
-    student_id = `ST${ts}${rand}`;
+    const { data: existing } = await supabase
+      .from('users')
+      .select('student_id')
+      .not('student_id', 'is', null)
+      .like('student_id', 'ST%')
+      .order('student_id', { ascending: false })
+      .limit(1);
+
+    let nextNum = 1;
+    if (existing && existing.length > 0) {
+      const lastId = existing[0].student_id; // e.g. "ST005"
+      const lastNum = parseInt(lastId.replace('ST', ''), 10);
+      if (!isNaN(lastNum)) nextNum = lastNum + 1;
+    }
+    student_id = `ST${String(nextNum).padStart(3, '0')}`; // ST006, ST007...
   }
 
   const { data, error } = await supabase
